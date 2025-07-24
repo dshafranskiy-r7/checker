@@ -4,11 +4,11 @@ A simple web tool to compare your Steam game library with games supported by [Po
 
 ## Features
 
-- 🎮 Compare Steam library with Portmaster supported games
-- 🔒 Secure - no user credentials required, only public Steam IDs
-- 🚀 Fast comparison with detailed reports
-- 📊 Shows playtime hours for matched games
-- 🌐 Simple web interface
+- Compare Steam library with Portmaster supported games
+- Secure - no user credentials required, only public Steam IDs
+- Fast comparison with detailed reports
+- Simple web interface with dark/light theme support
+- In-memory caching to prevent API rate limits
 
 ## How It Works
 
@@ -17,7 +17,7 @@ A simple web tool to compare your Steam game library with games supported by [Po
 3. Compares games with the current Portmaster supported games list
 4. Generates a detailed report showing matches
 
-**Note:** Users' Steam profiles must be set to public to view their game library.
+**Important:** Users' Steam profiles must be set to public to view their game library. The tool also includes a disclaimer that port compatibility may vary and users should check port requirements before installation.
 
 ## Setup Instructions
 
@@ -40,12 +40,7 @@ A simple web tool to compare your Steam game library with games supported by [Po
    - Enter any domain name (e.g., `localhost`)
    - Copy your API key
 
-4. Create environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-5. Edit `.env` file and add your Steam API key:
+4. Create a `.env` file in the project root:
    ```
    STEAM_API_KEY=your_steam_api_key_here
    ```
@@ -71,14 +66,14 @@ The application will:
 
 ### For Users
 
-1. Find your Steam ID:
-   - Go to your Steam profile
-   - Copy the URL (e.g., `https://steamcommunity.com/profiles/76561198123456789`)
-   - The number at the end is your Steam ID
+1. Enter one of the following in the form:
+   - Steam username (e.g., `yourusername`)
+   - Steam profile URL (e.g., `https://steamcommunity.com/id/yourusername`)
+   - Steam ID64 (e.g., `76561198123456789`)
 
-2. Enter your Steam ID or full profile URL in the form
+2. Click "Compare Games" to generate your report
 
-3. Click "Compare Games" to generate your report
+3. View matched games with thumbnails and links to port details
 
 ### Privacy Requirements
 
@@ -88,12 +83,12 @@ The application will:
 
 ## Security
 
-- ✅ No user authentication required
-- ✅ No user credentials handled
-- ✅ Only accesses public Steam profile data
-- ✅ Steam API key stays on server only
-- ✅ No third-party authentication libraries
-- ✅ No data storage or logging
+- No user authentication required
+- No user credentials handled
+- Only accesses public Steam profile data
+- Steam API key stays on server only
+- No third-party authentication libraries
+- No data storage or logging
 
 ## API Limits
 
@@ -108,8 +103,9 @@ Steam Web API has rate limits:
 - Make sure your "Game details" are set to Public
 
 ### "Invalid Steam ID" error
-- Use the 17-digit Steam ID64 format (starts with 765611...)
-- Check your profile URL for the correct ID
+- Check that your username or URL is correct
+- Ensure your Steam profile exists and is accessible
+- Try using your Steam ID64 directly if username resolution fails
 
 ### "Steam API key not configured" error
 - Make sure your `.env` file exists and contains `STEAM_API_KEY=your_key`
