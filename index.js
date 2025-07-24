@@ -19,25 +19,103 @@ app.get('/', (req, res) => {
     <head>
         <title>Portmaster Steam Lookup</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-            .container { background: #f5f5f5; padding: 30px; border-radius: 10px; }
-            input[type="text"] { width: 300px; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-            button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; }
-            button:hover { background: #45a049; }
-            .help { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-top: 20px; }
-            .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin-top: 20px; }
+            body { 
+                font-family: Arial, sans-serif; 
+                max-width: 800px; 
+                margin: 50px auto; 
+                padding: 20px;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                transition: background-color 0.3s, color 0.3s;
+            }
+            
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #333333;
+                --container-bg: #f5f5f5;
+                --input-bg: #ffffff;
+                --input-border: #ddd;
+                --help-bg: #e7f3ff;
+                --error-bg: #ffebee;
+                --error-text: #c62828;
+                --button-bg: #4CAF50;
+                --button-hover: #45a049;
+                --warning-border: #ffc107;
+                --warning-bg: #f8f4e6;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg-color: #1a1a1a;
+                    --text-color: #e0e0e0;
+                    --container-bg: #2d2d2d;
+                    --input-bg: #3d3d3d;
+                    --input-border: #555;
+                    --help-bg: #1e3a5f;
+                    --error-bg: #4a2c2c;
+                    --error-text: #ff6b6b;
+                    --button-bg: #4CAF50;
+                    --button-hover: #45a049;
+                    --warning-border: #ffb347;
+                    --warning-bg: #2a2416;
+                }
+            }
+            
+            .container { 
+                background: var(--container-bg); 
+                padding: 30px; 
+                border-radius: 10px; 
+            }
+            
+            input[type="text"] { 
+                width: 300px; 
+                padding: 10px; 
+                margin: 10px 0; 
+                border: 1px solid var(--input-border); 
+                border-radius: 5px;
+                background: var(--input-bg);
+                color: var(--text-color);
+            }
+            
+            button { 
+                background: var(--button-bg); 
+                color: white; 
+                padding: 12px 24px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+            }
+            
+            button:hover { 
+                background: var(--button-hover); 
+            }
+            
+            .help { 
+                background: var(--help-bg); 
+                padding: 15px; 
+                border-radius: 5px; 
+                margin-top: 20px; 
+            }
+            
+            .error { 
+                background: var(--error-bg); 
+                color: var(--error-text); 
+                padding: 15px; 
+                border-radius: 5px; 
+                margin-top: 20px; 
+            }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>🎮 Steam Portmaster Checker</h1>
+            <h1>Steam Portmaster Checker</h1>
             <p>Compare your Steam library with Portmaster supported games!</p>
             
             <form action="/compare" method="POST">
                 <label for="steamid">Steam ID, Username, or Profile URL:</label><br>
                 <input type="text" id="steamid" name="steamid" placeholder="yourusername or https://steamcommunity.com/id/yourusername/" required>
                 <br><br>
-                <button type="submit">🔍 Compare Games</button>
+                <button type="submit">Compare Games</button>
             </form>
             
             <div class="help">
@@ -49,6 +127,11 @@ app.get('/', (req, res) => {
                     <li><strong>Steam ID64:</strong> 76561198123456789</li>
                 </ul>
                 <p><strong>Note:</strong> Your Steam profile must be public to view your game library.</p>
+                
+                <div style="background: var(--warning-bg); padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid var(--warning-border);">
+                    <h4 style="margin: 0 0 10px 0;">Important Disclaimer</h4>
+                    <p style="margin: 0; font-size: 0.9em;">Finding a match means there's a Portmaster port with a similar name to your Steam game. However, <strong>the port may require the original game files, assets, or may be a completely different version</strong>. Always check the port's requirements before assuming compatibility with your Steam version.</p>
+                </div>
             </div>
         </div>
     </body>
@@ -71,7 +154,12 @@ app.post('/compare', async (req, res) => {
     }
 
     console.log('Fetching Portmaster games...');
-    const portmasterGames = await getPortmasterGames();
+    let portmasterGames;
+    try {
+      portmasterGames = await getPortmasterGames();
+    } catch (error) {
+      return res.send(errorPage(error.message));
+    }
     
     console.log('Comparing games...');
     const comparison = compareGames(steamGames, portmasterGames);
@@ -148,53 +236,73 @@ async function getSteamGames(steamId) {
 
 async function getPortmasterGames() {
   try {
-    // Get all games from the new PortMaster repository with pagination
-    const games = [];
-    let page = 1;
-    let hasMore = true;
+    console.log('Fetching Portmaster games from official ports.json...');
     
-    while (hasMore) {
-      const response = await axios.get(`https://api.github.com/repos/PortsMaster/PortMaster-New/contents/ports?per_page=100&page=${page}`);
-      
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        response.data.forEach(item => {
-          if (item.type === 'dir') {
-            // Clean up directory name to make it readable
-            let gameName = item.name
-              .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
-              .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
-              .replace(/\s+/g, ' ') // Multiple spaces to single space
-              .trim();
-            
-            // Capitalize first letter of each word
-            gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
-            
-            games.push({ 
-              name: gameName,
-              originalName: item.name
-            });
-          }
-        });
-        
-        // Check if we need to fetch more pages
-        if (response.data.length < 100) {
-          hasMore = false;
-        } else {
-          page++;
-        }
-      } else {
-        hasMore = false;
+    // Use the official data source that the website uses
+    const response = await axios.get('https://raw.githubusercontent.com/PortsMaster/PortMaster-Info/main/ports.json', {
+      timeout: 30000,
+      headers: {
+        'User-Agent': 'Steam-Portmaster-Checker/1.0.0',
+        'Accept': 'application/json'
       }
+    });
+    
+    const games = [];
+    
+    if (response.data && response.data.ports) {
+      const portsData = response.data.ports;
+      console.log(`Found ${Object.keys(portsData).length} ports in official JSON`);
+      
+      Object.entries(portsData).forEach(([portKey, portData]) => {
+        // Extract game name from the port data
+        let gameName = portData.name || portKey;
+        
+        // Clean up the name - remove .zip/.Zip suffix first
+        gameName = gameName
+          .replace(/\.zip$/i, '') // Remove .zip suffix (case insensitive)
+          .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+          .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
+          .replace(/\s+/g, ' ') // Multiple spaces to single space
+          .trim();
+        
+        // Capitalize first letter of each word
+        gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
+        
+        games.push({ 
+          name: gameName,
+          originalName: portKey.replace(/\.zip$/i, ''),
+          description: portData.attr?.description || '',
+          genres: portData.attr?.genres || []
+        });
+      });
     }
     
-    console.log(`Found ${games.length} Portmaster games from GitHub (PortMaster-New)`);
-    return games;
+    console.log(`Found ${games.length} Portmaster games from official source`);
+    if (games.length > 0) {
+      return games;
+    }
+    
+    // If no games found, throw error to trigger fallback
+    throw new Error('No games found in official ports.json');
+    
   } catch (error) {
-    console.error('Error fetching from PortMaster-New:', error);
+    console.error('Error fetching from official ports.json:', error.message);
+    
+    // Check if this is a rate limit error
+    if (error.response && error.response.status === 403) {
+      console.error('GitHub API rate limit exceeded');
+      throw new Error('GitHub API rate limit exceeded. Please wait about an hour before trying again, or try again later when fewer people are using the service.');
+    }
     
     // Fallback to original repository
     try {
-      const response = await axios.get('https://api.github.com/repos/christianhaitian/PortMaster/contents');
+      console.log('Trying fallback to original repository...');
+      const response = await axios.get('https://api.github.com/repos/christianhaitian/PortMaster/contents', {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Steam-Portmaster-Checker/1.0.0'
+        }
+      });
       const games = [];
       
       if (response.data && Array.isArray(response.data)) {
@@ -219,141 +327,82 @@ async function getPortmasterGames() {
       console.log(`Fallback: Found ${games.length} games from original repository`);
       return games;
     } catch (fallbackError) {
-      console.error('All GitHub sources failed:', fallbackError);
-      return [];
+      console.error('All GitHub sources failed:', fallbackError.message);
+      
+      // Check if fallback also hit rate limit
+      if (fallbackError.response && fallbackError.response.status === 403) {
+        throw new Error('GitHub API rate limit exceeded. Please wait about an hour before trying again, or try again later when fewer people are using the service.');
+      }
+      
+      // For other errors, provide a generic message
+      throw new Error('Unable to fetch Portmaster games list. This might be due to GitHub being temporarily unavailable. Please try again later.');
     }
   }
 }
 
-// Simple Levenshtein distance for fuzzy matching
-function levenshteinDistance(str1, str2) {
-  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
-  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
-  for (let j = 1; j <= str2.length; j++) {
-    for (let i = 1; i <= str1.length; i++) {
-      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,      // insertion
-        matrix[j - 1][i] + 1,      // deletion
-        matrix[j - 1][i - 1] + cost // substitution
-      );
-    }
-  }
-  
-  return matrix[str2.length][str1.length];
-}
-
-function normalizeGameName(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Remove punctuation
-    .replace(/\b(the|a|an|of|in|on|at|to|for|with|by|and|&)\b/g, '') // Remove common words
-    .replace(/\s+/g, ' ') // Multiple spaces to single
-    .trim();
-}
 
 function compareGames(steamGames, portmasterGames) {
   const matches = [];
-  const maxDistance = 3; // Maximum allowed character differences
+  
+  // Debug: Show some sample names from both sides
+  console.log('Sample Steam games:', steamGames.slice(0, 5).map(g => g.name));
+  console.log('Sample Portmaster games:', portmasterGames.slice(0, 5).map(g => g.name));
+  
+  // Look specifically for games we expect to find
+  const expectedGames = ['Stardew Valley', 'Celeste', 'Terraria', 'Doom', 'Cave Story', 'Strikey Sisters', 'Death Road to Canada'];
+  expectedGames.forEach(expected => {
+    const steamGame = steamGames.find(g => g.name.toLowerCase().includes(expected.toLowerCase()));
+    const portGame = portmasterGames.find(g => g.name.toLowerCase().includes(expected.toLowerCase()));
+    console.log(`${expected}: Steam=${steamGame ? steamGame.name : 'NOT FOUND'}, Port=${portGame ? portGame.name : 'NOT FOUND'}`);
+  });
+  
+  // Also search for partial matches for the missing ones
+  const searchTerms = ['stardew', 'strikey', 'death', 'road', 'canada', 'terraria'];
+  console.log('Searching for partial matches:');
+  searchTerms.forEach(term => {
+    const portMatches = portmasterGames.filter(g => g.name.toLowerCase().includes(term.toLowerCase()));
+    if (portMatches.length > 0) {
+      console.log(`"${term}" found in ports:`, portMatches.map(g => g.name));
+    } else {
+      console.log(`"${term}" not found in any port names`);
+    }
+  });
   
   steamGames.forEach(steamGame => {
     portmasterGames.forEach(portGame => {
-      const steamName = steamGame.name.toLowerCase();
-      const portName = portGame.name.toLowerCase();
+      const steamLower = steamGame.name.toLowerCase();
+      const portLower = portGame.name.toLowerCase();
       
-      // Exact matches
-      if (steamName === portName) {
+      // Exact match
+      if (steamLower === portLower) {
         matches.push({
           steamGame: steamGame.name,
           portmasterGame: portGame.name,
+          originalName: portGame.originalName,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'exact'
         });
         return;
       }
       
-      // Substring matches
-      if (steamName.includes(portName) || portName.includes(steamName)) {
+      // Space-insensitive match (remove spaces from both)
+      const steamNoSpaces = steamLower.replace(/\s+/g, '');
+      const portNoSpaces = portLower.replace(/\s+/g, '');
+      
+      if (steamNoSpaces === portNoSpaces) {
         matches.push({
           steamGame: steamGame.name,
           portmasterGame: portGame.name,
+          originalName: portGame.originalName,
           playtime: Math.round(steamGame.playtime_forever / 60),
-          matchType: 'substring'
+          matchType: 'space-insensitive'
         });
-        return;
-      }
-      
-      // Normalized comparison (remove common words, punctuation)
-      const steamNormalized = normalizeGameName(steamGame.name);
-      const portNormalized = normalizeGameName(portGame.name);
-      
-      if (steamNormalized && portNormalized) {
-        if (steamNormalized === portNormalized) {
-          matches.push({
-            steamGame: steamGame.name,
-            portmasterGame: portGame.name,
-            playtime: Math.round(steamGame.playtime_forever / 60),
-            matchType: 'normalized'
-          });
-          return;
-        }
-        
-        // Much stricter fuzzy matching - only for very close matches
-        if (steamNormalized.length > 6 && portNormalized.length > 6) {
-          // Only check if the names are similar in length (within 3 characters)
-          const lengthDiff = Math.abs(steamNormalized.length - portNormalized.length);
-          if (lengthDiff <= 3) {
-            const distance = levenshteinDistance(steamNormalized, portNormalized);
-            const similarity = 1 - (distance / Math.max(steamNormalized.length, portNormalized.length));
-            
-            // Much stricter: 95% similarity and max 2 character differences
-            if (similarity >= 0.95 && distance <= 2) {
-              matches.push({
-                steamGame: steamGame.name,
-                portmasterGame: portGame.name,
-                playtime: Math.round(steamGame.playtime_forever / 60),
-                matchType: 'fuzzy',
-                similarity: Math.round(similarity * 100)
-              });
-            }
-          }
-        }
-      }
-      
-      // Check if Portmaster original name matches better
-      if (portGame.originalName) {
-        const originalNormalized = normalizeGameName(portGame.originalName);
-        if (originalNormalized && steamNormalized === originalNormalized) {
-          matches.push({
-            steamGame: steamGame.name,
-            portmasterGame: portGame.name,
-            playtime: Math.round(steamGame.playtime_forever / 60),
-            matchType: 'original'
-          });
-        }
       }
     });
   });
   
-  // Remove duplicates (keep best match type)
-  const uniqueMatches = [];
-  const seen = new Set();
-  
-  ['exact', 'substring', 'normalized', 'original', 'fuzzy'].forEach(matchType => {
-    matches.filter(m => m.matchType === matchType).forEach(match => {
-      const key = `${match.steamGame}_${match.portmasterGame}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueMatches.push(match);
-      }
-    });
-  });
-  
-  console.log(`Found ${uniqueMatches.length} unique matches`);
-  return { matches: uniqueMatches };
+  console.log(`Found ${matches.length} exact matches`);
+  return { matches };
 }
 
 function generateReport(steamGames, portmasterGames, comparison) {
@@ -361,25 +410,133 @@ function generateReport(steamGames, portmasterGames, comparison) {
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Steam vs Portmaster Comparison Report</title>
+        <title>Your Portmaster Compatible Games</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-            .header { background: #4CAF50; color: white; padding: 20px; border-radius: 10px; text-align: center; }
-            .stats { display: flex; justify-content: space-around; margin: 20px 0; }
-            .stat { background: #f5f5f5; padding: 20px; border-radius: 10px; text-align: center; }
-            .stat h3 { margin: 0; color: #333; }
-            .stat .number { font-size: 2em; font-weight: bold; color: #4CAF50; }
-            .matches { background: #e8f5e8; padding: 20px; border-radius: 10px; margin-top: 20px; }
-            .match { background: white; margin: 10px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #4CAF50; }
-            .match h4 { margin: 0 0 10px 0; color: #333; }
-            .playtime { color: #666; font-size: 0.9em; }
-            .back-btn { background: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }
+            body { 
+                font-family: Arial, sans-serif; 
+                max-width: 1000px; 
+                margin: 20px auto; 
+                padding: 20px;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                transition: background-color 0.3s, color 0.3s;
+            }
+            
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #333333;
+                --header-bg: #4CAF50;
+                --stat-bg: #f5f5f5;
+                --stat-number: #4CAF50;
+                --matches-bg: #e8f5e8;
+                --match-bg: #ffffff;
+                --match-border: #4CAF50;
+                --playtime-color: #666;
+                --no-matches-bg: #fff3cd;
+                --back-btn-bg: #2196F3;
+                --image-border: #ddd;
+                --placeholder-bg: #f0f0f0;
+                --placeholder-text: #666;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg-color: #1a1a1a;
+                    --text-color: #e0e0e0;
+                    --header-bg: #4CAF50;
+                    --stat-bg: #2d2d2d;
+                    --stat-number: #4CAF50;
+                    --matches-bg: #1e3a1e;
+                    --match-bg: #2d2d2d;
+                    --match-border: #4CAF50;
+                    --playtime-color: #aaa;
+                    --no-matches-bg: #3d3a1e;
+                    --back-btn-bg: #2196F3;
+                    --image-border: #555;
+                    --placeholder-bg: #3d3d3d;
+                    --placeholder-text: #aaa;
+                }
+            }
+            
+            .header { 
+                background: var(--header-bg); 
+                color: white; 
+                padding: 20px; 
+                border-radius: 10px; 
+                text-align: center; 
+            }
+            
+            .stats { 
+                display: flex; 
+                justify-content: space-around; 
+                margin: 20px 0; 
+            }
+            
+            .stat { 
+                background: var(--stat-bg); 
+                padding: 20px; 
+                border-radius: 10px; 
+                text-align: center; 
+            }
+            
+            .stat h3 { 
+                margin: 0; 
+                color: var(--text-color); 
+            }
+            
+            .stat .number { 
+                font-size: 2em; 
+                font-weight: bold; 
+                color: var(--stat-number); 
+            }
+            
+            .matches { 
+                background: var(--matches-bg); 
+                padding: 20px; 
+                border-radius: 10px; 
+                margin-top: 20px; 
+            }
+            
+            .match { 
+                background: var(--match-bg); 
+                margin: 10px 0; 
+                padding: 15px; 
+                border-radius: 5px; 
+                border-left: 4px solid var(--match-border); 
+            }
+            
+            .match h4 { 
+                margin: 0 0 10px 0; 
+                color: var(--text-color); 
+            }
+            
+            .playtime { 
+                color: var(--playtime-color); 
+                font-size: 0.9em; 
+            }
+            
+            .back-btn { 
+                background: var(--back-btn-bg); 
+                color: white; 
+                padding: 10px 20px; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                display: inline-block; 
+                margin-top: 20px; 
+            }
+            
+            .no-matches-section {
+                background: var(--no-matches-bg);
+                padding: 20px;
+                border-radius: 10px;
+                margin-top: 20px;
+            }
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>🎮 Steam vs Portmaster Report</h1>
-            <p>Your gaming compatibility analysis</p>
+            <h1>Your Portmaster Compatible Games</h1>
+            <p>Games from your Steam library that work with Portmaster</p>
         </div>
         
         <div class="stats">
@@ -398,21 +555,41 @@ function generateReport(steamGames, portmasterGames, comparison) {
         </div>
         
         ${comparison.matches.length > 0 ? `
+        <div style="background: var(--warning-bg); padding: 15px; border-radius: 5px; margin-top: 20px; border-left: 4px solid var(--warning-border);">
+            <h4 style="margin: 0 0 10px 0;">Important: Read Before Installing</h4>
+            <p style="margin: 0; font-size: 0.9em;">These matches are based on game names only. <strong>Many Portmaster ports require original game files, specific versions, or may be completely different implementations</strong>. Always check each port's documentation and requirements before installation.</p>
+        </div>
+        
         <div class="matches">
-            <h2>🎯 Games You Own That Are Supported by Portmaster:</h2>
+            <h2>Potential Portmaster Ports for Your Games:</h2>
             ${comparison.matches.map(match => `
-                <div class="match">
-                    <h4>${match.steamGame}</h4>
-                    <div>Portmaster version: <strong>${match.portmasterGame}</strong></div>
-                    <div class="playtime">Playtime: ${match.playtime} hours</div>
-                    <div style="font-size: 0.8em; color: #888;">
-                        Match type: ${match.matchType}${match.similarity ? ` (${match.similarity}% similarity)` : ''}
+                <div class="match" style="display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="flex-shrink: 0;">
+                        <img src="https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.jpg" 
+                             alt="${match.portmasterGame} screenshot"
+                             style="width: 120px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--image-border);"
+                             onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.png'; if(this.src.includes('.png')) { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
+                        <div style="display: none; width: 120px; height: 80px; background: var(--placeholder-bg); border: 1px solid var(--image-border); border-radius: 5px; align-items: center; justify-content: center; color: var(--placeholder-text); font-size: 0.8em; text-align: center;">
+                            No Image
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 10px 0;">${match.steamGame}</h4>
+                        <div>Portmaster version: <strong>${match.portmasterGame}</strong></div>
+                        <div class="playtime">Playtime: ${match.playtime} hours</div>
+                        <div style="margin-top: 10px;">
+                            <a href="https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}" 
+                               target="_blank" 
+                               style="background: #2196F3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
+                                View Port Details
+                            </a>
+                        </div>
                     </div>
                 </div>
             `).join('')}
         </div>
         ` : `
-        <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;">
+        <div class="no-matches-section">
             <h2>No Direct Matches Found</h2>
             <p>We didn't find any exact matches between your Steam library and Portmaster supported games. This could be because:</p>
             <ul>
@@ -424,7 +601,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
         </div>
         `}
         
-        <a href="/" class="back-btn">🔄 Try Another Steam ID</a>
+        <a href="/" class="back-btn">Try Another Steam ID</a>
     </body>
     </html>
   `;
@@ -444,9 +621,9 @@ function errorPage(message) {
     </head>
     <body>
         <div class="error">
-            <h2>❌ Error</h2>
+            <h2>Error</h2>
             <p>${message}</p>
-            <a href="/" class="back-btn">🔄 Try Again</a>
+            <a href="/" class="back-btn">Try Again</a>
         </div>
     </body>
     </html>
