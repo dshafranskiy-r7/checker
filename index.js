@@ -9,6 +9,29 @@ dotenv.config();
 const app = express();
 const port = 3000;
 
+// Simple in-memory cache with TTL
+const cache = new Map();
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function setCache(key, data) {
+  cache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+}
+
+function getCache(key) {
+  const cached = cache.get(key);
+  if (!cached) return null;
+  
+  if (Date.now() - cached.timestamp > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -219,6 +242,14 @@ async function getSteamGames(steamId) {
     return { error: 'Steam API key not configured. Please contact the administrator.' };
   }
 
+  // Check cache first
+  const cacheKey = `steam_games_${steamId}`;
+  const cached = getCache(cacheKey);
+  if (cached) {
+    console.log(`Using cached Steam games for ${steamId} (${cached.length} games)`);
+    return cached;
+  }
+
   try {
     const url = `http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${process.env.STEAM_API_KEY}&steamid=${steamId}&include_appinfo=1&format=json`;
     const response = await axios.get(url);
@@ -227,7 +258,9 @@ async function getSteamGames(steamId) {
       return { error: 'Steam profile is private or does not exist. Please make your Steam profile public and try again.' };
     }
     
-    return response.data.response.games;
+    const games = response.data.response.games;
+    setCache(cacheKey, games);
+    return games;
   } catch (error) {
     console.error('Error fetching Steam games:', error);
     return { error: 'Failed to fetch Steam games. Please check your Steam ID and try again.' };
@@ -235,6 +268,13 @@ async function getSteamGames(steamId) {
 }
 
 async function getPortmasterGames() {
+  // Check cache first
+  const cached = getCache('portmaster_games');
+  if (cached) {
+    console.log(`Using cached Portmaster games (${cached.length} games)`);
+    return cached;
+  }
+
   try {
     console.log('Fetching Portmaster games from official ports.json...');
     
@@ -254,31 +294,52 @@ async function getPortmasterGames() {
       console.log(`Found ${Object.keys(portsData).length} ports in official JSON`);
       
       Object.entries(portsData).forEach(([portKey, portData]) => {
-        // Extract game name from the port data
-        let gameName = portData.name || portKey;
+        // Debug: Let's see what data is available for Death Road to Canada
+        if (portKey.toLowerCase().includes('deathroad')) {
+          console.log(`Found ${portKey} data:`, JSON.stringify(portData, null, 2));
+        }
         
-        // Clean up the name - remove .zip/.Zip suffix first
-        gameName = gameName
-          .replace(/\.zip$/i, '') // Remove .zip suffix (case insensitive)
-          .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
-          .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
-          .replace(/\s+/g, ' ') // Multiple spaces to single space
-          .trim();
+        // Priority: Use the actual display name from the JSON data
+        // Look for display name in various fields, prioritizing title over name
+        let displayName = portData.attr?.title || 
+                         portData.name || 
+                         portData.attr?.desc ||
+                         portData.description ||
+                         null;
         
-        // Capitalize first letter of each word
-        gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
-        
-        games.push({ 
-          name: gameName,
-          originalName: portKey.replace(/\.zip$/i, ''),
-          description: portData.attr?.description || '',
-          genres: portData.attr?.genres || []
-        });
+        // If we have a display name and it's not just the filename, use it as-is
+        if (displayName && displayName !== portKey && !displayName.endsWith('.zip')) {
+          games.push({ 
+            name: displayName.trim(),
+            originalName: portKey.replace(/\.zip$/i, ''),
+            description: portData.attr?.description || '',
+            genres: portData.attr?.genres || []
+          });
+        } else {
+          // Fallback: Clean up the filename only if no display name exists
+          let cleanedName = portKey
+            .replace(/\.zip$/i, '') // Remove .zip suffix
+            .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+            .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
+            .replace(/\s+/g, ' ') // Multiple spaces to single space
+            .trim();
+          
+          // Capitalize first letter of each word
+          cleanedName = cleanedName.replace(/\b\w/g, l => l.toUpperCase());
+          
+          games.push({ 
+            name: cleanedName,
+            originalName: portKey.replace(/\.zip$/i, ''),
+            description: portData.attr?.description || '',
+            genres: portData.attr?.genres || []
+          });
+        }
       });
     }
     
     console.log(`Found ${games.length} Portmaster games from official source`);
     if (games.length > 0) {
+      setCache('portmaster_games', games);
       return games;
     }
     
@@ -325,6 +386,7 @@ async function getPortmasterGames() {
       }
       
       console.log(`Fallback: Found ${games.length} games from original repository`);
+      setCache('portmaster_games', games);
       return games;
     } catch (fallbackError) {
       console.error('All GitHub sources failed:', fallbackError.message);
@@ -367,6 +429,17 @@ function compareGames(steamGames, portmasterGames) {
       console.log(`"${term}" not found in any port names`);
     }
   });
+  
+  // Look for the exact "Death Road to Canada" title
+  const deathRoadMatches = portmasterGames.filter(g => 
+    g.name.toLowerCase().includes('death') && 
+    g.name.toLowerCase().includes('road') && 
+    g.name.toLowerCase().includes('canada')
+  );
+  console.log('Games containing "death", "road", and "canada":', deathRoadMatches.map(g => g.name));
+  
+  // Also check original names (before our processing)
+  console.log('Sample original port names:', portmasterGames.slice(0, 10).map(g => `${g.name} (original: ${g.originalName})`));
   
   steamGames.forEach(steamGame => {
     portmasterGames.forEach(portGame => {
@@ -568,7 +641,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
                         <img src="https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.jpg" 
                              alt="${match.portmasterGame} screenshot"
                              style="width: 120px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--image-border);"
-                             onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.png'; if(this.src.includes('.png')) { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
+                             onerror="if(this.src.includes('.jpg')) { this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.png'; } else { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
                         <div style="display: none; width: 120px; height: 80px; background: var(--placeholder-bg); border: 1px solid var(--image-border); border-radius: 5px; align-items: center; justify-content: center; color: var(--placeholder-text); font-size: 0.8em; text-align: center;">
                             No Image
                         </div>
