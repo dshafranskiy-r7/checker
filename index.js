@@ -57,9 +57,9 @@ app.get('/', (req, res) => {
 
 app.post('/compare', async (req, res) => {
   try {
-    const steamId = extractSteamId(req.body.steamid);
+    const steamId = await resolveSteamId(req.body.steamid);
     if (!steamId) {
-      return res.send(errorPage('Invalid Steam ID format. Please provide a valid Steam ID or profile URL.'));
+      return res.send(errorPage('Invalid Steam ID format or unable to resolve Steam profile. Please check your Steam ID or profile URL.'));
     }
 
     console.log('Fetching Steam games for ID:', steamId);
@@ -82,13 +82,47 @@ app.post('/compare', async (req, res) => {
   }
 });
 
-function extractSteamId(input) {
+async function resolveSteamId(input) {
   if (!input) return null;
   
-  // Extract Steam ID from various formats
+  const cleanInput = input.trim();
+  
+  // Check if it's already a Steam ID64
   const steamId64Regex = /\b(765611\d{11})\b/;
-  const match = input.match(steamId64Regex);
-  return match ? match[1] : null;
+  const directMatch = cleanInput.match(steamId64Regex);
+  if (directMatch) {
+    return directMatch[1];
+  }
+  
+  // Extract custom name from various URL formats
+  let customName = null;
+  
+  // Handle steamcommunity.com/id/username
+  const customUrlMatch = cleanInput.match(/steamcommunity\.com\/id\/([^\/\?]+)/i);
+  if (customUrlMatch) {
+    customName = customUrlMatch[1];
+  }
+  
+  // Handle just the username (assume it's a custom name)
+  if (!customName && !cleanInput.includes('/') && !cleanInput.includes('.') && cleanInput.length > 2) {
+    customName = cleanInput;
+  }
+  
+  // Resolve custom name to Steam ID64 using Steam API
+  if (customName) {
+    try {
+      const resolveUrl = `http://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=${process.env.STEAM_API_KEY}&vanityurl=${customName}&format=json`;
+      const response = await axios.get(resolveUrl);
+      
+      if (response.data.response && response.data.response.success === 1) {
+        return response.data.response.steamid;
+      }
+    } catch (error) {
+      console.error('Error resolving custom Steam URL:', error);
+    }
+  }
+  
+  return null;
 }
 
 async function getSteamGames(steamId) {
