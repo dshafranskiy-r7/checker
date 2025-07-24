@@ -148,64 +148,189 @@ async function getSteamGames(steamId) {
 
 async function getPortmasterGames() {
   try {
-    const response = await axios.get('https://portmaster.games/games.html');
-    const $ = cheerio.load(response.data);
-    
+    // Get games from GitHub repository - much more reliable
+    const response = await axios.get('https://api.github.com/repos/christianhaitian/PortMaster/contents');
     const games = [];
     
-    // Look for game titles in various selectors
-    $('h3, h4, .game-title, .port-title, strong').each((i, elem) => {
-      const text = $(elem).text().trim();
-      if (text && text.length > 2 && !text.toLowerCase().includes('portmaster') && !text.toLowerCase().includes('download')) {
-        games.push({ name: text });
-      }
-    });
+    if (response.data && Array.isArray(response.data)) {
+      response.data.forEach(file => {
+        if (file.name && file.name.endsWith('.zip')) {
+          // Remove .zip extension and clean up the name
+          let gameName = file.name.replace('.zip', '');
+          
+          // Convert common patterns to readable names
+          gameName = gameName
+            .replace(/([A-Z])/g, ' $1') // Add space before capitals
+            .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+            .replace(/\s+/g, ' ') // Multiple spaces to single space
+            .trim();
+          
+          // Capitalize first letter of each word
+          gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
+          
+          games.push({ 
+            name: gameName,
+            originalName: file.name.replace('.zip', '')
+          });
+        }
+      });
+    }
     
-    // Also check for links that might contain game names
-    $('a').each((i, elem) => {
-      const text = $(elem).text().trim();
-      if (text && text.length > 3 && !text.toLowerCase().includes('portmaster') && !text.toLowerCase().includes('download')) {
-        games.push({ name: text });
-      }
-    });
-    
-    // Remove duplicates
-    const uniqueGames = games.filter((game, index, self) => 
-      index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
-    );
-    
-    return uniqueGames;
+    console.log(`Found ${games.length} Portmaster games from GitHub`);
+    return games;
   } catch (error) {
-    console.error('Error fetching Portmaster games:', error);
-    return [];
+    console.error('Error fetching Portmaster games from GitHub:', error);
+    
+    // Fallback to website scraping
+    try {
+      const response = await axios.get('https://portmaster.games/games.html');
+      const $ = cheerio.load(response.data);
+      const games = [];
+      
+      $('h3, h4, .game-title, .port-title, strong, a').each((i, elem) => {
+        const text = $(elem).text().trim();
+        if (text && text.length > 3 && !text.toLowerCase().includes('portmaster') && !text.toLowerCase().includes('download')) {
+          games.push({ name: text });
+        }
+      });
+      
+      const uniqueGames = games.filter((game, index, self) => 
+        index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
+      );
+      
+      console.log(`Fallback: Found ${uniqueGames.length} games from website`);
+      return uniqueGames;
+    } catch (fallbackError) {
+      console.error('Error with fallback scraping:', fallbackError);
+      return [];
+    }
   }
+}
+
+// Simple Levenshtein distance for fuzzy matching
+function levenshteinDistance(str1, str2) {
+  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+  
+  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+  
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1,      // insertion
+        matrix[j - 1][i] + 1,      // deletion
+        matrix[j - 1][i - 1] + cost // substitution
+      );
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+function normalizeGameName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .replace(/\b(the|a|an|of|in|on|at|to|for|with|by|and|&)\b/g, '') // Remove common words
+    .replace(/\s+/g, ' ') // Multiple spaces to single
+    .trim();
 }
 
 function compareGames(steamGames, portmasterGames) {
   const matches = [];
+  const maxDistance = 3; // Maximum allowed character differences
   
   steamGames.forEach(steamGame => {
     portmasterGames.forEach(portGame => {
       const steamName = steamGame.name.toLowerCase();
       const portName = portGame.name.toLowerCase();
       
-      // Various matching strategies
-      if (steamName === portName || 
-          steamName.includes(portName) || 
-          portName.includes(steamName) ||
-          // Remove common words and compare
-          steamName.replace(/\b(the|a|an|of|in|on|at|to|for|with|by)\b/g, '').trim() === 
-          portName.replace(/\b(the|a|an|of|in|on|at|to|for|with|by)\b/g, '').trim()) {
+      // Exact matches
+      if (steamName === portName) {
         matches.push({
           steamGame: steamGame.name,
           portmasterGame: portGame.name,
-          playtime: Math.round(steamGame.playtime_forever / 60) // Convert to hours
+          playtime: Math.round(steamGame.playtime_forever / 60),
+          matchType: 'exact'
         });
+        return;
+      }
+      
+      // Substring matches
+      if (steamName.includes(portName) || portName.includes(steamName)) {
+        matches.push({
+          steamGame: steamGame.name,
+          portmasterGame: portGame.name,
+          playtime: Math.round(steamGame.playtime_forever / 60),
+          matchType: 'substring'
+        });
+        return;
+      }
+      
+      // Normalized comparison (remove common words, punctuation)
+      const steamNormalized = normalizeGameName(steamGame.name);
+      const portNormalized = normalizeGameName(portGame.name);
+      
+      if (steamNormalized && portNormalized) {
+        if (steamNormalized === portNormalized) {
+          matches.push({
+            steamGame: steamGame.name,
+            portmasterGame: portGame.name,
+            playtime: Math.round(steamGame.playtime_forever / 60),
+            matchType: 'normalized'
+          });
+          return;
+        }
+        
+        // Fuzzy matching for close matches
+        if (steamNormalized.length > 4 && portNormalized.length > 4) {
+          const distance = levenshteinDistance(steamNormalized, portNormalized);
+          const similarity = 1 - (distance / Math.max(steamNormalized.length, portNormalized.length));
+          
+          if (similarity > 0.8) { // 80% similarity threshold
+            matches.push({
+              steamGame: steamGame.name,
+              portmasterGame: portGame.name,
+              playtime: Math.round(steamGame.playtime_forever / 60),
+              matchType: 'fuzzy',
+              similarity: Math.round(similarity * 100)
+            });
+          }
+        }
+      }
+      
+      // Check if Portmaster original name matches better
+      if (portGame.originalName) {
+        const originalNormalized = normalizeGameName(portGame.originalName);
+        if (originalNormalized && steamNormalized === originalNormalized) {
+          matches.push({
+            steamGame: steamGame.name,
+            portmasterGame: portGame.name,
+            playtime: Math.round(steamGame.playtime_forever / 60),
+            matchType: 'original'
+          });
+        }
       }
     });
   });
   
-  return { matches };
+  // Remove duplicates (keep best match type)
+  const uniqueMatches = [];
+  const seen = new Set();
+  
+  ['exact', 'substring', 'normalized', 'original', 'fuzzy'].forEach(matchType => {
+    matches.filter(m => m.matchType === matchType).forEach(match => {
+      const key = `${match.steamGame}_${match.portmasterGame}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueMatches.push(match);
+      }
+    });
+  });
+  
+  console.log(`Found ${uniqueMatches.length} unique matches`);
+  return { matches: uniqueMatches };
 }
 
 function generateReport(steamGames, portmasterGames, comparison) {
@@ -257,6 +382,9 @@ function generateReport(steamGames, portmasterGames, comparison) {
                     <h4>${match.steamGame}</h4>
                     <div>Portmaster version: <strong>${match.portmasterGame}</strong></div>
                     <div class="playtime">Playtime: ${match.playtime} hours</div>
+                    <div style="font-size: 0.8em; color: #888;">
+                        Match type: ${match.matchType}${match.similarity ? ` (${match.similarity}% similarity)` : ''}
+                    </div>
                 </div>
             `).join('')}
         </div>
