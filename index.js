@@ -1,6 +1,5 @@
 import express from 'express';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 import dotenv from 'dotenv';
 import open from 'open';
 
@@ -294,11 +293,6 @@ async function getPortmasterGames() {
       console.log(`Found ${Object.keys(portsData).length} ports in official JSON`);
       
       Object.entries(portsData).forEach(([portKey, portData]) => {
-        // Debug: Let's see what data is available for Death Road to Canada
-        if (portKey.toLowerCase().includes('deathroad')) {
-          console.log(`Found ${portKey} data:`, JSON.stringify(portData, null, 2));
-        }
-        
         // Priority: Use the actual display name from the JSON data
         // Look for display name in various fields, prioritizing title over name
         let displayName = portData.attr?.title || 
@@ -406,41 +400,6 @@ async function getPortmasterGames() {
 function compareGames(steamGames, portmasterGames) {
   const matches = [];
   
-  // Debug: Show some sample names from both sides
-  console.log('Sample Steam games:', steamGames.slice(0, 5).map(g => g.name));
-  console.log('Sample Portmaster games:', portmasterGames.slice(0, 5).map(g => g.name));
-  
-  // Look specifically for games we expect to find
-  const expectedGames = ['Stardew Valley', 'Celeste', 'Terraria', 'Doom', 'Cave Story', 'Strikey Sisters', 'Death Road to Canada'];
-  expectedGames.forEach(expected => {
-    const steamGame = steamGames.find(g => g.name.toLowerCase().includes(expected.toLowerCase()));
-    const portGame = portmasterGames.find(g => g.name.toLowerCase().includes(expected.toLowerCase()));
-    console.log(`${expected}: Steam=${steamGame ? steamGame.name : 'NOT FOUND'}, Port=${portGame ? portGame.name : 'NOT FOUND'}`);
-  });
-  
-  // Also search for partial matches for the missing ones
-  const searchTerms = ['stardew', 'strikey', 'death', 'road', 'canada', 'terraria'];
-  console.log('Searching for partial matches:');
-  searchTerms.forEach(term => {
-    const portMatches = portmasterGames.filter(g => g.name.toLowerCase().includes(term.toLowerCase()));
-    if (portMatches.length > 0) {
-      console.log(`"${term}" found in ports:`, portMatches.map(g => g.name));
-    } else {
-      console.log(`"${term}" not found in any port names`);
-    }
-  });
-  
-  // Look for the exact "Death Road to Canada" title
-  const deathRoadMatches = portmasterGames.filter(g => 
-    g.name.toLowerCase().includes('death') && 
-    g.name.toLowerCase().includes('road') && 
-    g.name.toLowerCase().includes('canada')
-  );
-  console.log('Games containing "death", "road", and "canada":', deathRoadMatches.map(g => g.name));
-  
-  // Also check original names (before our processing)
-  console.log('Sample original port names:', portmasterGames.slice(0, 10).map(g => `${g.name} (original: ${g.originalName})`));
-  
   steamGames.forEach(steamGame => {
     portmasterGames.forEach(portGame => {
       const steamLower = steamGame.name.toLowerCase();
@@ -474,7 +433,6 @@ function compareGames(steamGames, portmasterGames) {
     });
   });
   
-  console.log(`Found ${matches.length} exact matches`);
   return { matches };
 }
 
@@ -636,7 +594,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
         <div class="matches">
             <h2>Potential Portmaster Ports for Your Games:</h2>
             ${comparison.matches.map(match => `
-                <div class="match" style="display: flex; align-items: flex-start; gap: 15px;">
+                <div class="match" style="display: flex; align-items: center; gap: 15px;">
                     <div style="flex-shrink: 0;">
                         <img src="https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.jpg" 
                              alt="${match.portmasterGame} screenshot"
@@ -648,8 +606,6 @@ function generateReport(steamGames, portmasterGames, comparison) {
                     </div>
                     <div style="flex: 1;">
                         <h4 style="margin: 0 0 10px 0;">${match.steamGame}</h4>
-                        <div>Portmaster version: <strong>${match.portmasterGame}</strong></div>
-                        <div class="playtime">Playtime: ${match.playtime} hours</div>
                         <div style="margin-top: 10px;">
                             <a href="https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}" 
                                target="_blank" 
