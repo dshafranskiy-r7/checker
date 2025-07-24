@@ -34,19 +34,20 @@ app.get('/', (req, res) => {
             <p>Compare your Steam library with Portmaster supported games!</p>
             
             <form action="/compare" method="POST">
-                <label for="steamid">Steam ID or Profile URL:</label><br>
-                <input type="text" id="steamid" name="steamid" placeholder="76561198123456789 or https://steamcommunity.com/profiles/76561198123456789" required>
+                <label for="steamid">Steam ID, Username, or Profile URL:</label><br>
+                <input type="text" id="steamid" name="steamid" placeholder="yourusername or https://steamcommunity.com/id/yourusername/" required>
                 <br><br>
                 <button type="submit">🔍 Compare Games</button>
             </form>
             
             <div class="help">
-                <h3>How to find your Steam ID:</h3>
-                <ol>
-                    <li>Go to your Steam profile</li>
-                    <li>Copy the URL (e.g., https://steamcommunity.com/profiles/76561198123456789)</li>
-                    <li>Paste the full URL or just the number part</li>
-                </ol>
+                <h3>What can you enter?</h3>
+                <ul>
+                    <li><strong>Custom URL:</strong> https://steamcommunity.com/id/yourusername/</li>
+                    <li><strong>Just your username:</strong> yourusername</li>
+                    <li><strong>Numeric URL:</strong> https://steamcommunity.com/profiles/76561198123456789</li>
+                    <li><strong>Steam ID64:</strong> 76561198123456789</li>
+                </ul>
                 <p><strong>Note:</strong> Your Steam profile must be public to view your game library.</p>
             </div>
         </div>
