@@ -148,60 +148,78 @@ async function getSteamGames(steamId) {
 
 async function getPortmasterGames() {
   try {
-    // Get games from GitHub repository - much more reliable
-    const response = await axios.get('https://api.github.com/repos/christianhaitian/PortMaster/contents');
+    // Get all games from the new PortMaster repository with pagination
     const games = [];
+    let page = 1;
+    let hasMore = true;
     
-    if (response.data && Array.isArray(response.data)) {
-      response.data.forEach(file => {
-        if (file.name && file.name.endsWith('.zip')) {
-          // Remove .zip extension and clean up the name
-          let gameName = file.name.replace('.zip', '');
-          
-          // Convert common patterns to readable names
-          gameName = gameName
-            .replace(/([A-Z])/g, ' $1') // Add space before capitals
-            .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
-            .replace(/\s+/g, ' ') // Multiple spaces to single space
-            .trim();
-          
-          // Capitalize first letter of each word
-          gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
-          
-          games.push({ 
-            name: gameName,
-            originalName: file.name.replace('.zip', '')
-          });
+    while (hasMore) {
+      const response = await axios.get(`https://api.github.com/repos/PortsMaster/PortMaster-New/contents/ports?per_page=100&page=${page}`);
+      
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        response.data.forEach(item => {
+          if (item.type === 'dir') {
+            // Clean up directory name to make it readable
+            let gameName = item.name
+              .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+              .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
+              .replace(/\s+/g, ' ') // Multiple spaces to single space
+              .trim();
+            
+            // Capitalize first letter of each word
+            gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
+            
+            games.push({ 
+              name: gameName,
+              originalName: item.name
+            });
+          }
+        });
+        
+        // Check if we need to fetch more pages
+        if (response.data.length < 100) {
+          hasMore = false;
+        } else {
+          page++;
         }
-      });
+      } else {
+        hasMore = false;
+      }
     }
     
-    console.log(`Found ${games.length} Portmaster games from GitHub`);
+    console.log(`Found ${games.length} Portmaster games from GitHub (PortMaster-New)`);
     return games;
   } catch (error) {
-    console.error('Error fetching Portmaster games from GitHub:', error);
+    console.error('Error fetching from PortMaster-New:', error);
     
-    // Fallback to website scraping
+    // Fallback to original repository
     try {
-      const response = await axios.get('https://portmaster.games/games.html');
-      const $ = cheerio.load(response.data);
+      const response = await axios.get('https://api.github.com/repos/christianhaitian/PortMaster/contents');
       const games = [];
       
-      $('h3, h4, .game-title, .port-title, strong, a').each((i, elem) => {
-        const text = $(elem).text().trim();
-        if (text && text.length > 3 && !text.toLowerCase().includes('portmaster') && !text.toLowerCase().includes('download')) {
-          games.push({ name: text });
-        }
-      });
+      if (response.data && Array.isArray(response.data)) {
+        response.data.forEach(file => {
+          if (file.name && file.name.endsWith('.zip')) {
+            let gameName = file.name.replace('.zip', '')
+              .replace(/[-_]/g, ' ')
+              .replace(/([a-z])([A-Z])/g, '$1 $2')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            gameName = gameName.replace(/\b\w/g, l => l.toUpperCase());
+            
+            games.push({ 
+              name: gameName,
+              originalName: file.name.replace('.zip', '')
+            });
+          }
+        });
+      }
       
-      const uniqueGames = games.filter((game, index, self) => 
-        index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
-      );
-      
-      console.log(`Fallback: Found ${uniqueGames.length} games from website`);
-      return uniqueGames;
+      console.log(`Fallback: Found ${games.length} games from original repository`);
+      return games;
     } catch (fallbackError) {
-      console.error('Error with fallback scraping:', fallbackError);
+      console.error('All GitHub sources failed:', fallbackError);
       return [];
     }
   }
@@ -283,19 +301,24 @@ function compareGames(steamGames, portmasterGames) {
           return;
         }
         
-        // Fuzzy matching for close matches
-        if (steamNormalized.length > 4 && portNormalized.length > 4) {
-          const distance = levenshteinDistance(steamNormalized, portNormalized);
-          const similarity = 1 - (distance / Math.max(steamNormalized.length, portNormalized.length));
-          
-          if (similarity > 0.8) { // 80% similarity threshold
-            matches.push({
-              steamGame: steamGame.name,
-              portmasterGame: portGame.name,
-              playtime: Math.round(steamGame.playtime_forever / 60),
-              matchType: 'fuzzy',
-              similarity: Math.round(similarity * 100)
-            });
+        // Much stricter fuzzy matching - only for very close matches
+        if (steamNormalized.length > 6 && portNormalized.length > 6) {
+          // Only check if the names are similar in length (within 3 characters)
+          const lengthDiff = Math.abs(steamNormalized.length - portNormalized.length);
+          if (lengthDiff <= 3) {
+            const distance = levenshteinDistance(steamNormalized, portNormalized);
+            const similarity = 1 - (distance / Math.max(steamNormalized.length, portNormalized.length));
+            
+            // Much stricter: 95% similarity and max 2 character differences
+            if (similarity >= 0.95 && distance <= 2) {
+              matches.push({
+                steamGame: steamGame.name,
+                portmasterGame: portGame.name,
+                playtime: Math.round(steamGame.playtime_forever / 60),
+                matchType: 'fuzzy',
+                similarity: Math.round(similarity * 100)
+              });
+            }
           }
         }
       }
