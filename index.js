@@ -342,6 +342,7 @@ async function getPortmasterGames() {
       const portsData = response.data.ports;
       console.log(`Found ${Object.keys(portsData).length} ports in official JSON`);
       
+
       Object.entries(portsData).forEach(([portKey, portData]) => {
         // Priority: Use the actual display name from the JSON data
         // Look for display name in various fields, prioritizing title over name
@@ -351,27 +352,15 @@ async function getPortmasterGames() {
                          portData.description ||
                          null;
         
-        // Store the port data for asset URLs (same as official site)
-        const portAssetData = {
-          repo: portData.source?.repo || 'main',
-          screenshot: portData.attr?.image?.screenshot || null,
-          downloadUrl: portData.source?.url || null,
-          dateUpdated: portData.source?.date_updated || null,
-          downloadCount: portData.download_count || 0
-        };
+        let finalName;
+        let cleanedName;
         
         // If we have a display name and it's not just the filename, use it as-is
         if (displayName && displayName !== portKey && !displayName.endsWith('.zip')) {
-          games.push({ 
-            name: displayName.trim(),
-            originalName: portKey.replace(/\.zip$/i, ''),
-            description: portData.attr?.description || '',
-            genres: portData.attr?.genres || [],
-            assetData: portAssetData
-          });
+          finalName = displayName.trim();
         } else {
           // Fallback: Clean up the filename only if no display name exists
-          let cleanedName = portKey
+          cleanedName = portKey
             .replace(/\.zip$/i, '') // Remove .zip suffix
             .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
             .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capitals
@@ -380,15 +369,21 @@ async function getPortmasterGames() {
           
           // Capitalize first letter of each word
           cleanedName = cleanedName.replace(/\b\w/g, l => l.toUpperCase());
-          
-          games.push({ 
-            name: cleanedName,
-            originalName: portKey.replace(/\.zip$/i, ''),
-            description: portData.attr?.description || '',
-            genres: portData.attr?.genres || [],
-            assetData: portAssetData
-          });
+          finalName = cleanedName;
         }
+        
+        games.push({ 
+          name: finalName,
+          originalName: portKey.replace(/\.zip$/i, ''),
+          description: portData.attr?.desc || '',
+          genres: portData.attr?.genres || [],
+          // Store minimal data needed for image display
+          portData: {
+            name: portKey,
+            attr: { image: portData.attr?.image || { screenshot: null } },
+            source: { repo: portData.source?.repo || 'main' }
+          }
+        });
       });
     }
     
@@ -435,7 +430,12 @@ async function getPortmasterGames() {
             games.push({ 
               name: gameName,
               originalName: file.name.replace('.zip', ''),
-              assetData: { repo: 'main', screenshot: 'screenshot.jpg', downloadUrl: null, dateUpdated: null, downloadCount: 0 }
+              description: '',
+              portData: {
+                name: file.name,
+                attr: { image: { screenshot: 'screenshot.jpg' } },
+                source: { repo: 'main' }
+              }
             });
           }
         });
@@ -474,7 +474,8 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
-          assetData: portGame.assetData,
+          description: portGame.description,
+          portData: portGame.portData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'exact'
         });
@@ -491,7 +492,8 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
-          assetData: portGame.assetData,
+          description: portGame.description,
+          portData: portGame.portData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'space-insensitive'
         });
@@ -502,32 +504,21 @@ function compareGames(steamGames, portmasterGames) {
   return { matches };
 }
 
-// Replicate the official portmaster.games asset URL functions
-function getImageUrl(originalName, assetData) {
-  if (assetData && assetData.screenshot !== null) {
-    if (assetData.repo === 'main') {
-      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(assetData.screenshot)}`;
-    } else if (assetData.repo === 'multiverse') {
-      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(assetData.screenshot)}`;
+// Replicate the official portmaster.games functions exactly
+function getImageUrl(port) {
+  const name = port.name.replace('.zip', '');
+  const imageName = port.attr.image.screenshot;
+  if (imageName !== null) {
+    if (port.source.repo === 'main') {
+      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(name)}/${encodeURIComponent(imageName)}`;
+    } else if (port.source.repo === 'multiverse') {
+      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(name)}/${encodeURIComponent(imageName)}`;
     }
   }
   
-  // Fallback to default image from official site
   return 'https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';
 }
 
-function getDownloadUrl(assetData) {
-  // Use the exact same logic as official site - direct from source.url
-  return assetData?.downloadUrl || null;
-}
-
-function getRepositoryUrl(originalName, assetData) {
-  // Same repository routing logic as official site
-  if (assetData?.repo === 'multiverse') {
-    return `https://github.com/PortsMaster-MV/PortMaster-MV-New/tree/main/ports/${encodeURIComponent(originalName)}`;
-  }
-  return `https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${encodeURIComponent(originalName)}`;
-}
 
 function generateReport(steamGames, portmasterGames, comparison) {
   return `
@@ -752,20 +743,21 @@ function generateReport(steamGames, portmasterGames, comparison) {
             ${comparison.matches.map(match => `
                 <div class="match" style="display: flex; align-items: center; gap: 15px;">
                     <div style="flex-shrink: 0;">
-                        <img src="${getImageUrl(match.originalName, match.assetData)}" 
+                        <img src="${getImageUrl(match.portData)}" 
                              alt="${match.portmasterGame} screenshot"
                              style="width: 120px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--image-border);"
                              onerror="this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';">
                     </div>
                     <div style="flex: 1;">
                         <h4 style="margin: 0 0 10px 0;">${match.steamGame}</h4>
+                        ${match.description ? `<p style="margin: 0 0 15px 0; color: var(--playtime-color); font-size: 0.9em; line-height: 1.4;">${match.description}</p>` : ''}
                         <div style="margin-top: 10px;">
                             <a href="https://store.steampowered.com/app/${match.steamAppId}/" 
                                target="_blank" 
                                style="background: #1b2838; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em; margin-right: 10px;">
                                 View on Steam
                             </a>
-                            <a href="${getRepositoryUrl(match.originalName, match.assetData)}" 
+                            <a href="https://portmaster.games/detail.html?name=${encodeURIComponent(match.originalName)}" 
                                target="_blank" 
                                style="background: #2196F3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
                                 View Port Details
@@ -789,6 +781,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
         `}
         
         <a href="/" class="back-btn">Try Another Steam ID</a>
+        
     </body>
     </html>
   `;
