@@ -126,6 +126,56 @@ app.get('/', (req, res) => {
                 border-radius: 5px; 
                 margin-top: 20px; 
             }
+            
+            @media (max-width: 768px) {
+                body {
+                    margin: 10px auto;
+                    padding: 10px;
+                    max-width: 100%;
+                }
+                
+                .container {
+                    padding: 20px;
+                }
+                
+                h1 {
+                    font-size: 1.5em;
+                    text-align: center;
+                }
+                
+                input[type="text"] {
+                    width: 100%;
+                    max-width: 100%;
+                    box-sizing: border-box;
+                    font-size: 16px; /* Prevents zoom on iOS */
+                }
+                
+                button {
+                    width: 100%;
+                    padding: 15px;
+                    font-size: 1em;
+                    margin-top: 10px;
+                }
+                
+                .help {
+                    padding: 15px;
+                    margin-top: 15px;
+                }
+                
+                .help h3 {
+                    font-size: 1.1em;
+                    margin-top: 0;
+                }
+                
+                .help ul {
+                    padding-left: 20px;
+                }
+                
+                .help li {
+                    margin-bottom: 8px;
+                    line-height: 1.4;
+                }
+            }
         </style>
     </head>
     <body>
@@ -563,6 +613,69 @@ function generateReport(steamGames, portmasterGames, comparison) {
                 padding: 20px;
                 border-radius: 10px;
                 margin-top: 20px;
+            }
+            
+            @media (max-width: 768px) {
+                body {
+                    margin: 10px auto;
+                    padding: 10px;
+                    max-width: 100%;
+                }
+                
+                .header {
+                    padding: 15px;
+                }
+                
+                .header h1 {
+                    font-size: 1.5em;
+                    margin: 0 0 10px 0;
+                }
+                
+                .stats {
+                    flex-direction: column;
+                    gap: 10px;
+                    margin: 15px 0;
+                }
+                
+                .stat {
+                    padding: 15px;
+                }
+                
+                .matches {
+                    padding: 15px;
+                }
+                
+                .match {
+                    flex-direction: column !important;
+                    align-items: flex-start !important;
+                    gap: 10px !important;
+                    padding: 15px;
+                }
+                
+                .match img, .match div:has(+ *:empty) {
+                    width: 100% !important;
+                    max-width: 200px;
+                    height: auto !important;
+                    align-self: center;
+                }
+                
+                .match h4 {
+                    font-size: 1.1em;
+                    text-align: center;
+                    width: 100%;
+                }
+                
+                .match > div:last-child {
+                    width: 100%;
+                    text-align: center;
+                }
+                
+                .match a {
+                    display: inline-block;
+                    margin: 5px 5px 0 0 !important;
+                    padding: 8px 12px !important;
+                    font-size: 0.85em !important;
+                }
             }
         </style>
     </head>
