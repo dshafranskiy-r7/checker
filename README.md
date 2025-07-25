@@ -7,7 +7,6 @@ A simple web tool to compare your Steam game library with games supported by [Po
 - Compare Steam library with Portmaster supported games
 - Secure - no user credentials required, only public Steam IDs
 - Fast comparison with detailed reports
-- Simple web interface with dark/light theme support
 - In-memory caching to prevent API rate limits
 
 ## How It Works
@@ -90,12 +89,6 @@ The application will:
 - No third-party authentication libraries
 - No data storage or logging
 
-## API Limits
-
-Steam Web API has rate limits:
-- 100,000 requests per day per API key
-- Reasonable usage should stay well within limits
-
 ## Troubleshooting
 
 ### "Steam profile is private" error
@@ -111,33 +104,9 @@ Steam Web API has rate limits:
 - Make sure your `.env` file exists and contains `STEAM_API_KEY=your_key`
 - Restart the server after adding the API key
 
-## About Portmaster
-
-[Portmaster](https://portmaster.games/) is a management software for installing and updating various game ports for Linux-driven handheld video game systems. It allows you to play games natively on devices like Steam Deck, ROG Ally, and other handheld gaming devices.
-
 ## Contributing
 
 Feel free to submit issues or pull requests to improve the game matching algorithm or add new features!
-
-## Deployment
-
-### Deploy to Vercel (Free)
-
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) and sign up with GitHub
-3. Click "Import Project" and select your repository
-4. Vercel will auto-detect it's a Node.js project
-5. In project settings, add environment variable:
-   - Name: `STEAM_API_KEY`
-   - Value: Your Steam API key
-   - **Important**: Mark it as "Sensitive"
-6. Deploy! Your app will be live at `yourproject.vercel.app`
-
-Vercel's free tier includes:
-- 100 GB bandwidth/month
-- Unlimited deployments
-- Custom domains
-- Perfect for community projects!
 
 ## License
 
