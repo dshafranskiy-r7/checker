@@ -351,10 +351,13 @@ async function getPortmasterGames() {
                          portData.description ||
                          null;
         
-        // Store the port data for image URL generation (same as official site)
-        const portImageData = {
+        // Store the port data for asset URLs (same as official site)
+        const portAssetData = {
           repo: portData.source?.repo || 'main',
-          screenshot: portData.attr?.image?.screenshot || null
+          screenshot: portData.attr?.image?.screenshot || null,
+          downloadUrl: portData.source?.url || null,
+          dateUpdated: portData.source?.date_updated || null,
+          downloadCount: portData.download_count || 0
         };
         
         // If we have a display name and it's not just the filename, use it as-is
@@ -364,7 +367,7 @@ async function getPortmasterGames() {
             originalName: portKey.replace(/\.zip$/i, ''),
             description: portData.attr?.description || '',
             genres: portData.attr?.genres || [],
-            imageData: portImageData
+            assetData: portAssetData
           });
         } else {
           // Fallback: Clean up the filename only if no display name exists
@@ -383,7 +386,7 @@ async function getPortmasterGames() {
             originalName: portKey.replace(/\.zip$/i, ''),
             description: portData.attr?.description || '',
             genres: portData.attr?.genres || [],
-            imageData: portImageData
+            assetData: portAssetData
           });
         }
       });
@@ -432,7 +435,7 @@ async function getPortmasterGames() {
             games.push({ 
               name: gameName,
               originalName: file.name.replace('.zip', ''),
-              imageData: { repo: 'main', screenshot: 'screenshot.jpg' }
+              assetData: { repo: 'main', screenshot: 'screenshot.jpg', downloadUrl: null, dateUpdated: null, downloadCount: 0 }
             });
           }
         });
@@ -471,7 +474,7 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
-          imageData: portGame.imageData,
+          assetData: portGame.assetData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'exact'
         });
@@ -488,7 +491,7 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
-          imageData: portGame.imageData,
+          assetData: portGame.assetData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'space-insensitive'
         });
@@ -499,18 +502,31 @@ function compareGames(steamGames, portmasterGames) {
   return { matches };
 }
 
-// Replicate the official portmaster.games getImageUrl function
-function getImageUrl(originalName, imageData) {
-  if (imageData && imageData.screenshot !== null) {
-    if (imageData.repo === 'main') {
-      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(imageData.screenshot)}`;
-    } else if (imageData.repo === 'multiverse') {
-      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(imageData.screenshot)}`;
+// Replicate the official portmaster.games asset URL functions
+function getImageUrl(originalName, assetData) {
+  if (assetData && assetData.screenshot !== null) {
+    if (assetData.repo === 'main') {
+      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(assetData.screenshot)}`;
+    } else if (assetData.repo === 'multiverse') {
+      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(assetData.screenshot)}`;
     }
   }
   
   // Fallback to default image from official site
   return 'https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';
+}
+
+function getDownloadUrl(assetData) {
+  // Use the exact same logic as official site - direct from source.url
+  return assetData?.downloadUrl || null;
+}
+
+function getRepositoryUrl(originalName, assetData) {
+  // Same repository routing logic as official site
+  if (assetData?.repo === 'multiverse') {
+    return `https://github.com/PortsMaster-MV/PortMaster-MV-New/tree/main/ports/${encodeURIComponent(originalName)}`;
+  }
+  return `https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${encodeURIComponent(originalName)}`;
 }
 
 function generateReport(steamGames, portmasterGames, comparison) {
@@ -736,7 +752,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
             ${comparison.matches.map(match => `
                 <div class="match" style="display: flex; align-items: center; gap: 15px;">
                     <div style="flex-shrink: 0;">
-                        <img src="${getImageUrl(match.originalName, match.imageData)}" 
+                        <img src="${getImageUrl(match.originalName, match.assetData)}" 
                              alt="${match.portmasterGame} screenshot"
                              style="width: 120px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--image-border);"
                              onerror="this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';">
@@ -749,7 +765,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
                                style="background: #1b2838; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em; margin-right: 10px;">
                                 View on Steam
                             </a>
-                            <a href="${match.imageData?.repo === 'multiverse' ? 'https://github.com/PortsMaster-MV/PortMaster-MV-New' : 'https://github.com/PortsMaster/PortMaster-New'}/tree/main/ports/${match.originalName}" 
+                            <a href="${getRepositoryUrl(match.originalName, match.assetData)}" 
                                target="_blank" 
                                style="background: #2196F3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
                                 View Port Details
