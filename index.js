@@ -131,7 +131,7 @@ app.get('/', (req, res) => {
     <body>
         <div class="container">
             <h1>Steam Portmaster Checker</h1>
-            <p>Compare your Steam library with Portmaster supported games!</p>
+            <p>Compare your Steam library with <a href="https://portmaster.games/" target="_blank">Portmaster</a> supported games!</p>
             
             <form action="/compare" method="POST">
                 <label for="steamid">Steam ID, Username, or Profile URL:</label><br>
@@ -409,6 +409,7 @@ function compareGames(steamGames, portmasterGames) {
       if (steamLower === portLower) {
         matches.push({
           steamGame: steamGame.name,
+          steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
           playtime: Math.round(steamGame.playtime_forever / 60),
@@ -424,6 +425,7 @@ function compareGames(steamGames, portmasterGames) {
       if (steamNoSpaces === portNoSpaces) {
         matches.push({
           steamGame: steamGame.name,
+          steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
           playtime: Math.round(steamGame.playtime_forever / 60),
@@ -607,6 +609,11 @@ function generateReport(steamGames, portmasterGames, comparison) {
                     <div style="flex: 1;">
                         <h4 style="margin: 0 0 10px 0;">${match.steamGame}</h4>
                         <div style="margin-top: 10px;">
+                            <a href="https://store.steampowered.com/app/${match.steamAppId}/" 
+                               target="_blank" 
+                               style="background: #1b2838; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em; margin-right: 10px;">
+                                View on Steam
+                            </a>
                             <a href="https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}" 
                                target="_blank" 
                                style="background: #2196F3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
