@@ -501,6 +501,9 @@ function compareGames(steamGames, portmasterGames) {
     });
   });
   
+  // Sort matches alphabetically by Steam game name
+  matches.sort((a, b) => a.steamGame.localeCompare(b.steamGame));
+  
   return { matches };
 }
 
