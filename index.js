@@ -351,13 +351,20 @@ async function getPortmasterGames() {
                          portData.description ||
                          null;
         
+        // Store the port data for image URL generation (same as official site)
+        const portImageData = {
+          repo: portData.source?.repo || 'main',
+          screenshot: portData.attr?.image?.screenshot || null
+        };
+        
         // If we have a display name and it's not just the filename, use it as-is
         if (displayName && displayName !== portKey && !displayName.endsWith('.zip')) {
           games.push({ 
             name: displayName.trim(),
             originalName: portKey.replace(/\.zip$/i, ''),
             description: portData.attr?.description || '',
-            genres: portData.attr?.genres || []
+            genres: portData.attr?.genres || [],
+            imageData: portImageData
           });
         } else {
           // Fallback: Clean up the filename only if no display name exists
@@ -375,7 +382,8 @@ async function getPortmasterGames() {
             name: cleanedName,
             originalName: portKey.replace(/\.zip$/i, ''),
             description: portData.attr?.description || '',
-            genres: portData.attr?.genres || []
+            genres: portData.attr?.genres || [],
+            imageData: portImageData
           });
         }
       });
@@ -423,7 +431,8 @@ async function getPortmasterGames() {
             
             games.push({ 
               name: gameName,
-              originalName: file.name.replace('.zip', '')
+              originalName: file.name.replace('.zip', ''),
+              imageData: { repo: 'main', screenshot: 'screenshot.jpg' }
             });
           }
         });
@@ -462,6 +471,7 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
+          imageData: portGame.imageData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'exact'
         });
@@ -478,6 +488,7 @@ function compareGames(steamGames, portmasterGames) {
           steamAppId: steamGame.appid,
           portmasterGame: portGame.name,
           originalName: portGame.originalName,
+          imageData: portGame.imageData,
           playtime: Math.round(steamGame.playtime_forever / 60),
           matchType: 'space-insensitive'
         });
@@ -486,6 +497,20 @@ function compareGames(steamGames, portmasterGames) {
   });
   
   return { matches };
+}
+
+// Replicate the official portmaster.games getImageUrl function
+function getImageUrl(originalName, imageData) {
+  if (imageData && imageData.screenshot !== null) {
+    if (imageData.repo === 'main') {
+      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(imageData.screenshot)}`;
+    } else if (imageData.repo === 'multiverse') {
+      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(originalName)}/${encodeURIComponent(imageData.screenshot)}`;
+    }
+  }
+  
+  // Fallback to default image from official site
+  return 'https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';
 }
 
 function generateReport(steamGames, portmasterGames, comparison) {
@@ -711,13 +736,10 @@ function generateReport(steamGames, portmasterGames, comparison) {
             ${comparison.matches.map(match => `
                 <div class="match" style="display: flex; align-items: center; gap: 15px;">
                     <div style="flex-shrink: 0;">
-                        <img src="https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.jpg" 
+                        <img src="${getImageUrl(match.originalName, match.imageData)}" 
                              alt="${match.portmasterGame} screenshot"
                              style="width: 120px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--image-border);"
-                             onerror="if(this.src.includes('.jpg')) { this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}/screenshot.png'; } else { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
-                        <div style="display: none; width: 120px; height: 80px; background: var(--placeholder-bg); border: 1px solid var(--image-border); border-radius: 5px; align-items: center; justify-content: center; color: var(--placeholder-text); font-size: 0.8em; text-align: center;">
-                            No Image
-                        </div>
+                             onerror="this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';">
                     </div>
                     <div style="flex: 1;">
                         <h4 style="margin: 0 0 10px 0;">${match.steamGame}</h4>
@@ -727,7 +749,7 @@ function generateReport(steamGames, portmasterGames, comparison) {
                                style="background: #1b2838; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em; margin-right: 10px;">
                                 View on Steam
                             </a>
-                            <a href="https://github.com/PortsMaster/PortMaster-New/tree/main/ports/${match.originalName || match.portmasterGame.toLowerCase().replace(/\s+/g, '')}" 
+                            <a href="${match.imageData?.repo === 'multiverse' ? 'https://github.com/PortsMaster-MV/PortMaster-MV-New' : 'https://github.com/PortsMaster/PortMaster-New'}/tree/main/ports/${match.originalName}" 
                                target="_blank" 
                                style="background: #2196F3; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
                                 View Port Details
