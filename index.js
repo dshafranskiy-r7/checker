@@ -40,6 +40,14 @@ app.get('/', (req, res) => {
     <html>
     <head>
         <title>Portmaster Steam Lookup</title>
+        <script>
+          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        <script>
+          window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/speed-insights/script.js"></script>
         <style>
             body { 
                 font-family: Arial, sans-serif; 
@@ -529,6 +537,14 @@ function generateReport(steamGames, portmasterGames, comparison) {
     <html>
     <head>
         <title>Your Portmaster Compatible Games</title>
+        <script>
+          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        <script>
+          window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/speed-insights/script.js"></script>
         <style>
             body { 
                 font-family: Arial, sans-serif; 
@@ -796,6 +812,14 @@ function errorPage(message) {
     <html>
     <head>
         <title>Error - Steam Portmaster Checker</title>
+        <script>
+          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        <script>
+          window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/speed-insights/script.js"></script>
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
             .error { background: #ffebee; color: #c62828; padding: 30px; border-radius: 10px; text-align: center; }
