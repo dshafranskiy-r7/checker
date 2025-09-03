@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portmaster Game Checker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div class="max-w-4xl mx-auto px-4 py-8 md:py-12">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-center mb-4">Portmaster Game Checker</h1>
+            <p class="text-center text-gray-600 dark:text-gray-300 mb-8">
+                Compare your Steam or Epic Games library with <a href="https://portmaster.games/" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">Portmaster</a> supported games!
+            </p>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold mb-4">Choose your platform:</h3>
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button type="button" onclick="showSteamForm()"
+                            class="px-5 py-2.5 rounded-lg text-white font-medium transition-colors duration-200"
+                            style="background-color: #1b2838;" id="steam-btn">Steam</button>
+                    <button type="button" onclick="showEpicForm()"
+                            class="px-5 py-2.5 rounded-lg text-white font-medium transition-colors duration-200 bg-gray-600"
+                            id="epic-btn">Epic Games</button>
+                    <button type="button" onclick="showGogForm()"
+                            class="px-5 py-2.5 rounded-lg text-white font-medium transition-colors duration-200 bg-gray-600"
+                            id="gog-btn">GOG</button>
+                </div>
+            </div>
+
+            <div id="steam-form" class="block">
+                <form action="/compare" method="POST" class="space-y-4">
+                    <h3 class="text-lg font-semibold">Steam Library Comparison</h3>
+                    <div>
+                        <label for="steamid" class="block text-sm font-medium mb-2">Steam ID, Username, or Profile URL:</label>
+                        <input type="text" id="steamid" name="steamid"
+                               placeholder="yourusername or https://steamcommunity.com/id/yourusername/"
+                               class="w-full md:w-96 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <button type="submit"
+                            class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200">
+                        Compare Steam Games
+                    </button>
+                </form>
+            </div>
+
+            <div id="epic-form" class="hidden">
+                <form action="/compare-epic" method="POST" class="space-y-4">
+                    <h3 class="text-lg font-semibold">Epic Games Library Comparison</h3>
+                    <div>
+                        <label for="epicgames" class="block text-sm font-medium mb-2">Paste your Epic Games list (one game per line):</label>
+                        <textarea id="epicgames" name="epicgames" rows="10"
+                                  placeholder="* >observer_ (App name: Tumeric | Version: 1.0.2)&#10;* A Short Hike (App name: d6407c9e6fd54cb492b8c6635480d792 | Version: 1.9_v3_OSX)&#10;* Celeste (App name: Salt | Version: 1.4.0.0-Mac)&#10;...&#10;&#10;Or just paste game names one per line:&#10;A Short Hike&#10;Celeste&#10;Enter the Gungeon&#10;..."
+                                  class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm resize-vertical"></textarea>
+                    </div>
+                    <button type="submit"
+                            class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200">
+                        Compare Epic Games
+                    </button>
+                </form>
+            </div>
+
+            <div id="gog-form" class="hidden">
+                <form action="/compare-gog" method="POST" class="space-y-4">
+                    <h3 class="text-lg font-semibold">GOG Library Comparison</h3>
+                    <div>
+                        <label for="goggames" class="block text-sm font-medium mb-2">Paste your GOG games JSON export:</label>
+                        <textarea id="goggames" name="goggames" rows="10"
+                                  placeholder='{&#10;  "products": [&#10;    {&#10;      "title": "Cyberpunk 2077",&#10;      "id": "1423049311"&#10;    },&#10;    {&#10;      "title": "The Witcher 3: Wild Hunt",&#10;      "id": "1207658924"&#10;    },&#10;    {&#10;      "title": "Disco Elysium - The Final Cut",&#10;      "id": "1432208681"&#10;    }&#10;  ]&#10;}&#10;&#10;Or simple text format (one game per line):&#10;Cyberpunk 2077&#10;The Witcher 3: Wild Hunt&#10;Disco Elysium - The Final Cut&#10;....'
+                                  class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm resize-vertical"></textarea>
+                    </div>
+                    <button type="submit"
+                            class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200">
+                        Compare GOG Games
+                    </button>
+                </form>
+            </div>
+
+            <script src="logic.js"></script>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 mt-8">
+                <h3 class="text-lg font-semibold mb-4">How to use:</h3>
+
+                <div class="space-y-4">
+                    <div>
+                        <p class="font-semibold mb-2">Steam:</p>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                            <li><strong>Custom URL:</strong> https://steamcommunity.com/id/yourusername/</li>
+                            <li><strong>Just your username:</strong> yourusername</li>
+                            <li><strong>Numeric URL:</strong> https://steamcommunity.com/profiles/76561198123456789</li>
+                            <li><strong>Steam ID64:</strong> 76561198123456789</li>
+                        </ul>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                            <strong>Note:</strong> Your Steam profile must be public to view your game library.
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="font-semibold mb-2">Epic Games:</p>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                            <li>Copy your Epic Games library list and paste it in the text area</li>
+                            <li>Accepts Epic's native format: <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">* Game Name (App name: id | Version: x)</code></li>
+                            <li>Also accepts simple game names, one per line</li>
+                            <li>You can get your Epic Games list from the Epic Games Launcher</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <p class="font-semibold mb-2">GOG:</p>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                            <li><strong>Preferred:</strong> Export your games as JSON from GOG Galaxy or GOG.com account in the format: <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">{"products": [{"title": "Game Name"}, ...]}</code></li>
+                            <li><strong>Alternative:</strong> Simply paste game names, one per line</li>
+                            <li>Game names should match exactly as they appear in your GOG library</li>
+                            <li>JSON format allows for more accurate parsing and future features</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 mt-6">
+                    <h4 class="font-semibold mb-2">Important Disclaimer</h4>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Finding a match means there's a Portmaster port with a similar name to your game. However, <strong>the port may require the original game files, assets, or may be a completely different version</strong>. Always check the port's requirements before assuming compatibility with your Steam, Epic, or GOG version.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
