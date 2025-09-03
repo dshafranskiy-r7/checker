@@ -468,3 +468,18 @@ export async function getPortmasterGames(getCache, setCache) {
     }
   }
 }
+
+// Replicate the official portmaster.games functions exactly
+export async function getImageUrl(port) {
+  const name = port.name.replace('.zip', '');
+  const imageName = port.attr.image.screenshot;
+  if (imageName !== null) {
+    if (port.source.repo === 'main') {
+      return `https://raw.githubusercontent.com/PortsMaster/PortMaster-New/main/ports/${encodeURIComponent(name)}/${encodeURIComponent(imageName)}`;
+    } else if (port.source.repo === 'multiverse') {
+      return `https://raw.githubusercontent.com/PortsMaster-MV/PortMaster-MV-New/main/ports/${encodeURIComponent(name)}/${encodeURIComponent(imageName)}`;
+    }
+  }
+
+  return 'https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';
+}
