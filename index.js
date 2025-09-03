@@ -332,40 +332,14 @@ function generateSteamReport(steamGames, portmasterGames, comparison) {
 }
 
 function errorPage(message) {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Error - Steam Portmaster Checker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-        </script>
-        <script defer src="/_vercel/insights/script.js"></script>
-        <script>
-          window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-        </script>
-        <script defer src="/_vercel/speed-insights/script.js"></script>
-    </head>
-    <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-        <div class="max-w-2xl mx-auto px-4 py-12 md:py-20">
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-8 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
-                    <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                </div>
-                <h2 class="text-2xl font-bold text-red-800 dark:text-red-200 mb-4">Error</h2>
-                <p class="text-red-700 dark:text-red-300 mb-8 leading-relaxed">${message}</p>
-                <a href="/" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
-                    Try Again
-                </a>
-            </div>
-        </div>
-    </body>
-    </html>
-  `;
+  // Read the HTML template
+  const templatePath = path.join(__dirname, 'src/html/error-page.html');
+  let template = fs.readFileSync(templatePath, 'utf8');
+
+  // Replace placeholder with actual error message
+  template = template.replace('{{ERROR_MESSAGE}}', message);
+
+  return template;
 }
 
 app.listen(port, () => {
