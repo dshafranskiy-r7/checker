@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portmaster Game Checker</title>
+    
+    <!-- Tailwind CSS via CDN with different configuration -->
+    <script src="https://unpkg.com/tailwindcss-jit-cdn"></script>
+    
+    <!-- Analytics -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+    
+    <!-- Inline Tailwind-inspired styles as fallback -->
+    <style>
+        /* Custom styles for brand colors and additional functionality */
+        .bg-steam { background-color: #1b2838; }
+        .bg-steam-dark { background-color: #171a2b; }
+        .bg-epic { background-color: #313131; }
+        .bg-epic-dark { background-color: #2a2a2a; }
+        .bg-gog { background-color: #7c3aed; }
+        .bg-gog-dark { background-color: #6d28d9; }
+        
+        /* Base styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .main-card {
+            background-color: #f9fafb;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        
+        .platform-selector {
+            margin-bottom: 2rem;
+        }
+        
+        .platform-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        
+        .platform-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .platform-btn {
+            background-color: #6b7280;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .platform-btn:hover {
+            background-color: #4b5563;
+        }
+        
+        .platform-btn.active-steam {
+            background-color: #1b2838;
+        }
+        
+        .platform-btn.active-epic {
+            background-color: #313131;
+        }
+        
+        .platform-btn.active-gog {
+            background-color: #7c3aed;
+        }
+        
+        .form-section {
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .form-section.hidden {
+            display: none;
+        }
+        
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: white;
+            color: #111827;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-textarea {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            min-height: 200px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            background-color: #16a34a;
+            color: white;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .submit-btn:hover {
+            background-color: #15803d;
+        }
+        
+        .how-to-use {
+            background-color: #dbeafe;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .how-to-use h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e40af;
+            margin: 0 0 1rem 0;
+        }
+        
+        .how-to-use h4 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #1d4ed8;
+            margin: 1rem 0 0.5rem 0;
+        }
+        
+        .how-to-use ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .how-to-use li {
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+        
+        .how-to-use code {
+            background-color: #1e40af;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        .disclaimer {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-left: 4px solid #f59e0b;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .disclaimer h4 {
+            color: #92400e;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .disclaimer p {
+            color: #92400e;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .main-card {
+                padding: 1.5rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .platform-btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-textarea {
+                min-height: 150px;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #111827;
+                color: #f9fafb;
+            }
+            
+            .main-card {
+                background-color: #1f2937;
+            }
+            
+            .title, .platform-title, .form-title {
+                color: #f9fafb;
+            }
+            
+            .subtitle {
+                color: #9ca3af;
+            }
+            
+            .form-label {
+                color: #d1d5db;
+            }
+            
+            .form-input, .form-textarea {
+                background-color: #374151;
+                border-color: #4b5563;
+                color: #f9fafb;
+            }
+            
+            .how-to-use {
+                background-color: #1e3a8a;
+                border-color: #3b82f6;
+            }
+            
+            .how-to-use h3, .how-to-use h4, .how-to-use li {
+                color: #dbeafe;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-card">
+            <h1 class="title">
+                Portmaster Game Checker
+            </h1>
+            <p class="subtitle">
+                Compare your Steam or Epic Games library with 
+                <a href="https://portmaster.games/" target="_blank" style="color: #3b82f6; text-decoration: underline;">
+                    Portmaster
+                </a> 
+                supported games!
+            </p>
+            
+            <!-- Platform Selection -->
+            <div class="platform-selector">
+                <h3 class="platform-title">Choose your platform:</h3>
+                <div class="platform-buttons">
+                    <button 
+                        id="steam-btn" 
+                        onclick="showSteamForm()" 
+                        class="platform-btn"
+                    >
+                        Steam
+                    </button>
+                    <button 
+                        id="epic-btn" 
+                        onclick="showEpicForm()" 
+                        class="platform-btn"
+                    >
+                        Epic Games
+                    </button>
+                    <button 
+                        id="gog-btn" 
+                        onclick="showGogForm()" 
+                        class="platform-btn"
+                    >
+                        GOG
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Steam Form -->
+            <div id="steam-form" class="form-section">
+                <form action="/compare" method="POST">
+                    <h3 class="form-title">Steam Library Comparison</h3>
+                    
+                    <div class="form-group">
+                        <label for="steamid" class="form-label">
+                            Steam ID, Username, or Profile URL:
+                        </label>
+                        <input 
+                            type="text" 
+                            id="steamid" 
+                            name="steamid" 
+                            placeholder="yourusername or https://steamcommunity.com/id/yourusername/"
+                            class="form-input"
+                        >
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        Compare Steam Games
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Epic Games Form -->
+            <div id="epic-form" class="form-section hidden">
+                <form action="/compare-epic" method="POST">
+                    <h3 class="form-title">Epic Games Library Comparison</h3>
+                    
+                    <div class="form-group">
+                        <label for="epicgames" class="form-label">
+                            Paste your Epic Games list (one game per line):
+                        </label>
+                        <textarea 
+                            id="epicgames" 
+                            name="epicgames" 
+                            placeholder="* >observer_ (App name: Tumeric | Version: 1.0.2)
+* A Short Hike (App name: d6407c9e6fd54cb492b8c6635480d792 | Version: 1.9_v3_OSX)
+* Celeste (App name: Salt | Version: 1.4.0.0-Mac)
+...
+
+Or just paste game names one per line:
+A Short Hike
+Celeste
+Enter the Gungeon
+...."
+                            class="form-textarea"
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        Compare Epic Games
+                    </button>
+                </form>
+            </div>
+            
+            <!-- GOG Form -->
+            <div id="gog-form" class="form-section hidden">
+                <form action="/compare-gog" method="POST">
+                    <h3 class="form-title">GOG Library Comparison</h3>
+                    
+                    <div class="form-group">
+                        <label for="goggames" class="form-label">
+                            Paste your GOG games JSON export:
+                        </label>
+                        <textarea 
+                            id="goggames" 
+                            name="goggames" 
+                            placeholder='{
+  "products": [
+    {
+      "title": "Cyberpunk 2077",
+      "id": "1423049311"
+    },
+    {
+      "title": "The Witcher 3: Wild Hunt", 
+      "id": "1207658924"
+    },
+    {
+      "title": "Disco Elysium - The Final Cut",
+      "id": "1432208681"
+    }
+  ]
+}
+
+Or simple text format (one game per line):
+Cyberpunk 2077
+The Witcher 3: Wild Hunt
+Disco Elysium - The Final Cut
+.....'
+                            class="form-textarea"
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        Compare GOG Games
+                    </button>
+                </form>
+            </div>
+            
+            <!-- How to use section will be loaded here -->
+            <div id="how-to-use-section">
+                <!-- Content will be loaded from how-to-use.html -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript for immediate functionality -->
+    <script>
+        // Platform form switching functions
+        function showSteamForm() {
+            hideAllForms();
+            document.getElementById('steam-form').classList.remove('hidden');
+            updateButtonStates('steam');
+        }
+
+        function showEpicForm() {
+            hideAllForms();
+            document.getElementById('epic-form').classList.remove('hidden');
+            updateButtonStates('epic');
+        }
+
+        function showGogForm() {
+            hideAllForms();
+            document.getElementById('gog-form').classList.remove('hidden');
+            updateButtonStates('gog');
+        }
+
+        function hideAllForms() {
+            const forms = document.querySelectorAll('.form-section');
+            forms.forEach(form => {
+                form.classList.add('hidden');
+            });
+        }
+
+        function updateButtonStates(activePlatform) {
+            // Reset all buttons
+            const buttons = document.querySelectorAll('.platform-btn');
+            buttons.forEach(btn => {
+                btn.className = 'platform-btn';
+            });
+            
+            // Set active button
+            const activeBtn = document.getElementById(`${activePlatform}-btn`);
+            activeBtn.className = `platform-btn active-${activePlatform}`;
+        }
+
+        // Load "How to use" section from external file
+        async function loadHowToUseSection() {
+            try {
+                const response = await fetch('/how-to-use.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    document.getElementById('how-to-use-section').innerHTML = html;
+                } else {
+                    console.warn('Could not load how-to-use section');
+                }
+            } catch (error) {
+                console.warn('Error loading how-to-use section:', error);
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the "How to use" section
+            loadHowToUseSection();
+            
+            // Set Steam as default platform
+            showSteamForm();
+        });
+    </script>
+</body>
+</html>
