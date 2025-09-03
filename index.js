@@ -15,7 +15,7 @@ import {
   getSteamGames,
   getPortmasterGames,
   getImageUrl
-} from './server-functions.js';
+} from './src/js/server-functions.js';
 
 dotenv.config();
 
@@ -53,7 +53,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'src/html/index.html'));
 });
 
 // Engine configuration for different platforms
@@ -232,7 +232,7 @@ function generateReport(platform, platformGames, portmasterGames, comparison) {
   }
 
   // Read the HTML template
-  const templatePath = path.join(__dirname, 'report-template.html');
+  const templatePath = path.join(__dirname, '/src/html/report-template.html');
   let template = fs.readFileSync(templatePath, 'utf8');
 
   // Replace placeholders with actual data
