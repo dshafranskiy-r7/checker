@@ -241,16 +241,29 @@ Enter the Gungeon
             <div id="gog-form" style="display: none;">
                 <form action="/compare-gog" method="POST">
                     <h3>GOG Library Comparison</h3>
-                    <label for="goggames">Paste your GOG games list (one game per line):</label><br>
-                    <textarea id="goggames" name="goggames" rows="10" cols="80" placeholder="Cyberpunk 2077
+                    <label for="goggames">Paste your GOG games JSON export:</label><br>
+                    <textarea id="goggames" name="goggames" rows="10" cols="80" placeholder='{
+  "products": [
+    {
+      "title": "Cyberpunk 2077",
+      "id": "1423049311"
+    },
+    {
+      "title": "The Witcher 3: Wild Hunt", 
+      "id": "1207658924"
+    },
+    {
+      "title": "Disco Elysium - The Final Cut",
+      "id": "1432208681"
+    }
+  ]
+}
+
+Or simple text format (one game per line):
+Cyberpunk 2077
 The Witcher 3: Wild Hunt
 Disco Elysium - The Final Cut
-Divinity: Original Sin 2
-Hollow Knight
-Celeste
-Hades
-Enter the Gungeon
-...." style="width: 100%; max-width: 600px; padding: 10px; border: 1px solid var(--input-border); border-radius: 5px; background: var(--input-bg); color: var(--text-color); font-family: monospace; font-size: 0.9em;"></textarea>
+....' style="width: 100%; max-width: 600px; padding: 10px; border: 1px solid var(--input-border); border-radius: 5px; background: var(--input-bg); color: var(--text-color); font-family: monospace; font-size: 0.9em;"></textarea>
                     <br><br>
                     <button type="submit">Compare GOG Games</button>
                 </form>
@@ -306,10 +319,10 @@ Enter the Gungeon
                 
                 <p><strong>GOG:</strong></p>
                 <ul>
-                    <li>Copy your GOG games library list and paste it in the text area</li>
-                    <li>Simply paste game names, one per line</li>
-                    <li>You can get your game list from GOG Galaxy or your GOG.com account</li>
+                    <li><strong>Preferred:</strong> Export your games as JSON from GOG Galaxy or GOG.com account in the format: <code>{"products": [{"title": "Game Name"}, ...]}</code></li>
+                    <li><strong>Alternative:</strong> Simply paste game names, one per line</li>
                     <li>Game names should match exactly as they appear in your GOG library</li>
+                    <li>JSON format allows for more accurate parsing and future features</li>
                 </ul>
                 
                 <div style="background: var(--warning-bg); padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid var(--warning-border);">
@@ -441,8 +454,38 @@ function parseEpicGames(epicGamesText) {
 }
 
 function parseGogGames(gogGamesText) {
-  const lines = gogGamesText.split('\n');
   const games = [];
+  const trimmedInput = gogGamesText.trim();
+  
+  // Try to parse as JSON first
+  try {
+    const jsonData = JSON.parse(trimmedInput);
+    
+    // Check if it has the expected "products" array structure
+    if (jsonData && jsonData.products && Array.isArray(jsonData.products)) {
+      jsonData.products.forEach(product => {
+        if (product.title && typeof product.title === 'string' && product.title.trim()) {
+          games.push({
+            name: product.title.trim(),
+            platform: 'GOG'
+          });
+        }
+      });
+      
+      // Remove duplicates
+      const uniqueGames = games.filter((game, index, self) => 
+        index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
+      );
+      
+      return uniqueGames;
+    }
+  } catch (e) {
+    // If JSON parsing fails, fall back to line-by-line parsing for backward compatibility
+    console.log('JSON parsing failed, falling back to line-by-line parsing');
+  }
+  
+  // Fallback: parse as line-by-line format for backward compatibility
+  const lines = trimmedInput.split('\n');
   
   for (const line of lines) {
     const trimmed = line.trim();
