@@ -206,7 +206,7 @@ export function compareGogGames(gogGames, portmasterGames) {
   return { matches };
 }
 
-export function compareGames(steamGames, portmasterGames) {
+export function compareSteamGames(steamGames, portmasterGames) {
   const matches = [];
 
   steamGames.forEach(steamGame => {
