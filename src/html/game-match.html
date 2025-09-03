@@ -1,0 +1,26 @@
+<div class="bg-white dark:bg-gray-800 rounded-lg border-l-4 border-green-500 p-4 md:p-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-4">
+        <div class="flex-shrink-0 mx-auto md:mx-0">
+            <img src="{{GAME_IMAGE_URL}}"
+                 alt="{{PORTMASTER_GAME}} screenshot"
+                 class="w-32 h-20 md:w-40 md:h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                 onerror="this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';">
+        </div>
+        <div class="flex-1 text-center md:text-left">
+            <h4 class="text-lg md:text-xl font-semibold mb-2">{{GAME_NAME}}</h4>
+            {{GAME_DESCRIPTION}}
+            <div class="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
+                <a href="{{SEARCH_URL}}"
+                   target="_blank"
+                   class="inline-flex items-center justify-center px-4 py-2 {{SEARCH_BUTTON_CLASS}} text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                    {{SEARCH_BUTTON_TEXT}}
+                </a>
+                <a href="https://portmaster.games/detail.html?name={{ENCODED_ORIGINAL_NAME}}"
+                   target="_blank"
+                   class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                    View Port Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

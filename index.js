@@ -231,8 +231,8 @@ function generateReport(platform, platformGames, portmasterGames, comparison) {
     throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  // Read the HTML template
-  const templatePath = path.join(__dirname, '/src/html/report-template.html');
+  // Read the main HTML template
+  const templatePath = path.join(__dirname, 'src/html/portmaster-page.html');
   let template = fs.readFileSync(templatePath, 'utf8');
 
   // Replace placeholders with actual data
@@ -248,69 +248,48 @@ function generateReport(platform, platformGames, portmasterGames, comparison) {
   // Generate the matches section
   let matchesSection;
   if (comparison.matches.length > 0) {
-    matchesSection = `
-      <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 rounded-lg p-6 mb-8">
-          <h4 class="font-semibold text-lg mb-3">Important: Read Before Installing</h4>
-          <p class="text-gray-700 dark:text-gray-300">
-              These matches are based on game names only. <strong>${config.disclaimerText}</strong>. Always check each port's documentation and requirements before installation.
-          </p>
-      </div>
+    // Read matches found template
+    const matchesFoundPath = path.join(__dirname, 'src/html/matches-found.html');
+    const gameMatchPath = path.join(__dirname, 'src/html/game-match.html');
 
-      <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-6 md:p-8">
-          <h2 class="text-xl md:text-2xl font-bold mb-6">Potential Portmaster Ports for Your ${config.platformName} Games:</h2>
-          <div class="space-y-4">
-              ${comparison.matches.map(match => {
-                const gameName = match[config.gameProperty];
-                const searchUrl = config.appIdProperty && match[config.appIdProperty]
-                  ? config.searchUrl().replace('{{APP_ID}}', match[config.appIdProperty])
-                  : config.searchUrl(gameName);
+    let matchesFoundTemplate = fs.readFileSync(matchesFoundPath, 'utf8');
+    const gameMatchTemplate = fs.readFileSync(gameMatchPath, 'utf8');
 
-                return `
-                  <div class="bg-white dark:bg-gray-800 rounded-lg border-l-4 border-green-500 p-4 md:p-6">
-                      <div class="flex flex-col md:flex-row md:items-center gap-4">
-                          <div class="flex-shrink-0 mx-auto md:mx-0">
-                              <img src="${getImageUrl(match.portData)}"
-                                   alt="${match.portmasterGame} screenshot"
-                                   class="w-32 h-20 md:w-40 md:h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                                   onerror="this.src='https://raw.githubusercontent.com/PortsMaster/PortMaster-Website/main/no.image.png';">
-                          </div>
-                          <div class="flex-1 text-center md:text-left">
-                              <h4 class="text-lg md:text-xl font-semibold mb-2">${gameName}</h4>
-                              ${match.description ? `<p class="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed mb-4">${match.description}</p>` : ''}
-                              <div class="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
-                                  <a href="${searchUrl}"
-                                     target="_blank"
-                                     class="inline-flex items-center justify-center px-4 py-2 ${config.searchButtonClass} text-white text-sm font-medium rounded-lg transition-colors duration-200">
-                                      ${config.searchButtonText}
-                                  </a>
-                                  <a href="https://portmaster.games/detail.html?name=${encodeURIComponent(match.originalName)}"
-                                     target="_blank"
-                                     class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
-                                      View Port Details
-                                  </a>
-                              </div>
-                          </div>
-                      </div>
-                  </div>`;
-              }).join('')}
-          </div>
-      </div>`;
+    // Generate individual game matches
+    const gameMatches = comparison.matches.map(match => {
+      const gameName = match[config.gameProperty];
+      const searchUrl = config.appIdProperty && match[config.appIdProperty]
+        ? config.searchUrl().replace('{{APP_ID}}', match[config.appIdProperty])
+        : config.searchUrl(gameName);
+
+      let gameMatch = gameMatchTemplate;
+      gameMatch = gameMatch.replace('{{GAME_IMAGE_URL}}', getImageUrl(match.portData));
+      gameMatch = gameMatch.replace('{{PORTMASTER_GAME}}', match.portmasterGame);
+      gameMatch = gameMatch.replace('{{GAME_NAME}}', gameName);
+      gameMatch = gameMatch.replace('{{GAME_DESCRIPTION}}',
+        match.description ? `<p class="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed mb-4">${match.description}</p>` : ''
+      );
+      gameMatch = gameMatch.replace('{{SEARCH_URL}}', searchUrl);
+      gameMatch = gameMatch.replace('{{SEARCH_BUTTON_CLASS}}', config.searchButtonClass);
+      gameMatch = gameMatch.replace('{{SEARCH_BUTTON_TEXT}}', config.searchButtonText);
+      gameMatch = gameMatch.replace('{{ENCODED_ORIGINAL_NAME}}', encodeURIComponent(match.originalName));
+
+      return gameMatch;
+    }).join('');
+
+    // Replace placeholders in matches found template
+    matchesFoundTemplate = matchesFoundTemplate.replace('{{DISCLAIMER_TEXT}}', config.disclaimerText);
+    matchesFoundTemplate = matchesFoundTemplate.replace('{{PLATFORM_NAME}}', config.platformName);
+    matchesFoundTemplate = matchesFoundTemplate.replace('{{GAME_MATCHES}}', gameMatches);
+
+    matchesSection = matchesFoundTemplate;
   } else {
-    matchesSection = `
-      <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-6 md:p-8">
-          <h2 class="text-xl md:text-2xl font-bold mb-4">No Direct Matches Found</h2>
-          <p class="text-gray-700 dark:text-gray-300 mb-4">
-              We didn't find any exact matches between your ${config.platformName} library and Portmaster supported games. This could be because:
-          </p>
-          <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-6">
-              <li>Game names don't match exactly between platforms</li>
-              <li>You may have games that require additional files to work with Portmaster</li>
-              <li>New ports may have been added since our last update</li>
-          </ul>
-          <p class="text-gray-700 dark:text-gray-300">
-              Check the <a href="https://portmaster.games/games.html" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">full Portmaster games list</a> manually for potential matches.
-          </p>
-      </div>`;
+    // Read no matches template
+    const noMatchesPath = path.join(__dirname, 'src/html/no-matches.html');
+    let noMatchesTemplate = fs.readFileSync(noMatchesPath, 'utf8');
+
+    noMatchesTemplate = noMatchesTemplate.replace('{{PLATFORM_NAME}}', config.platformName);
+    matchesSection = noMatchesTemplate;
   }
 
   template = template.replace('{{MATCHES_SECTION}}', matchesSection);
