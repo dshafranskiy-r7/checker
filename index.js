@@ -10,7 +10,7 @@ import {
   parseGogGames,
   compareEpicGames,
   compareGogGames,
-  compareGames,
+  compareSteamGames,
   resolveSteamId,
   getSteamGames,
   getPortmasterGames,
@@ -74,7 +74,7 @@ const engineConfig = {
       if (games.error) throw new Error(games.error);
       return games;
     },
-    compareGames: compareGames,
+    compareGames: compareSteamGames,
     logPrefix: 'Steam',
     emptyListMessage: null, // Steam API handles this differently
     noGamesMessage: null    // Steam API handles this differently
