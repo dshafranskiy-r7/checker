@@ -18,9 +18,11 @@ A simple web tool to compare your Steam game library with games supported by [Po
 
 **Important:** Users' Steam profiles must be set to public to view their game library. The tool also includes a disclaimer that port compatibility may vary and users should check port requirements before installation.
 
-## Usage
+# Usage
 
-### For Users
+## For Users
+
+### Steam
 
 1. Enter one of the following in the form:
    - Steam username (e.g., `yourusername`)
@@ -31,13 +33,33 @@ A simple web tool to compare your Steam game library with games supported by [Po
 
 3. View matched games with thumbnails and links to port details
 
-### Privacy Requirements
+### GOG
+
+1. Log in into GOG.
+
+2. Paste this URL into your browser: `https://embed.gog.com/account/getFilteredProducts?mediaType=1&sort=title&page=1`. Note that there would be multiple pages with a result, so you have to run this URL multiple times, changing last number.
+
+3. Paste produced result in the test field.
+
+
+### Epic Games
+
+1. Install Python
+
+2. pip install legendary-gl
+
+3. legendary auth
+
+4. legendary list > games.txt
+
+
+# Privacy Requirements
 
 - Your Steam profile must be set to **Public** for the tool to access your game library
 - You can temporarily make it public, run the comparison, then set it back to private
 - No personal data is stored - everything is processed in real-time
 
-## Security
+# Security
 
 - No user authentication required
 - No user credentials handled

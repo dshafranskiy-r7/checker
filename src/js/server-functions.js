@@ -470,7 +470,7 @@ export async function getPortmasterGames(getCache, setCache) {
 }
 
 // Replicate the official portmaster.games functions exactly
-export async function getImageUrl(port) {
+export function getImageUrl(port) {
   const name = port.name.replace('.zip', '');
   const imageName = port.attr.image.screenshot;
   if (imageName !== null) {
